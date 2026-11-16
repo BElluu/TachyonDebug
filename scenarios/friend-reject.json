@@ -1,0 +1,84 @@
+{
+  "name": "Friend request: reject",
+  "category": "Friends",
+  "description": "bob rejects alice's request.  Based on: friend_test.exs (reject request).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "friend/remove",
+      "title": "Reset: alice unfriends bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "friend/remove",
+      "title": "Reset: bob unfriends alice",
+      "data": {
+        "userId": "${alice.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "friend/cancelRequest",
+      "title": "Reset: cancel pending requests",
+      "data": {
+        "to": "${bob.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "friend/cancelRequest",
+      "data": {
+        "to": "${alice.id}"
+      },
+      "optional": true
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "drain": "all"
+    },
+    {
+      "as": "alice",
+      "command": "friend/sendRequest",
+      "title": "alice sends a request",
+      "data": {
+        "to": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "friend/requestReceived",
+      "title": "bob receives it"
+    },
+    {
+      "as": "bob",
+      "command": "friend/rejectRequest",
+      "title": "bob rejects",
+      "data": {
+        "from": "${alice.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "waitFor": "friend/requestRejected",
+      "title": "alice is told"
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import fs from 'node:fs'
 import { buildCatalog } from '../src/catalog.js'
-import { subst, matches, getPath, runScenario } from '../src/scenarios.js'
+import { subst, matches, getPath, runScenario, listScenarios } from '../src/scenarios.js'
 
 const schemaDir = path.resolve(process.env.TACHYON_DIR ?? '../tachyon', 'schema')
 
@@ -36,7 +36,7 @@ test('matches does subset matching', () => {
 
 test('runScenario drives requests, waits for events and stops on mismatch', async () => {
   const listeners = new Set()
-  const sessions = new Map([['alice', { user: { id: '1' } }], ['bob', { user: { id: '2' } }]])
+  const sessions = new Map([['alice', { state: 'open', user: { id: '1' } }], ['bob', { state: 'open', user: { id: '2' } }]])
   const emit = (e) => [...listeners].forEach((fn) => fn(e))
   let n = 0
   const send = (name, { commandId }) => {

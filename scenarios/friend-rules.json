@@ -1,0 +1,46 @@
+{
+  "name": "Friend request: invalid requests",
+  "category": "Friends",
+  "description": "Sending to yourself or to an unknown user is rejected with invalid_user.  Based on: friend_test.exs (request non-existent user, request to self).",
+  "sessions": [
+    "alice"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "friend/sendRequest",
+      "title": "request to yourself",
+      "data": {
+        "to": "${alice.id}"
+      },
+      "expect": {
+        "status": "failed",
+        "reason": "invalid_user"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "friend/sendRequest",
+      "title": "request to an unknown user",
+      "data": {
+        "to": "-37189312"
+      },
+      "expect": {
+        "status": "failed",
+        "reason": "invalid_user"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "friend/cancelRequest",
+      "title": "cancel for an invalid user",
+      "data": {
+        "to": "invalid-id"
+      },
+      "expect": {
+        "status": "failed",
+        "reason": "invalid_user"
+      }
+    }
+  ]
+}

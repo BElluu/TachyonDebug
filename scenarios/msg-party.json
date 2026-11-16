@@ -1,0 +1,137 @@
+{
+  "name": "Party chat",
+  "category": "Messaging",
+  "description": "alice writes to the party; bob receives it with a party source.  Based on: messaging_test.exs (messaging in party).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: alice leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Reset: bob leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Reset: alice leaves any party",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Reset: bob leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "title": "Let the reset events settle"
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "alice",
+      "command": "party/create",
+      "title": "alice creates a party",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "party": "data.party"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "party/invited",
+      "title": "bob receives the invite"
+    },
+    {
+      "as": "bob",
+      "command": "party/acceptInvite",
+      "title": "bob accepts",
+      "data": {
+        "partyId": "${party.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "command": "messaging/subscribeReceived",
+      "title": "bob subscribes",
+      "expect": {
+        "status": "success"
+      },
+      "data": {
+        "since": {
+          "type": "latest"
+        }
+      }
+    },
+    {
+      "drain": "all"
+    },
+    {
+      "as": "alice",
+      "command": "messaging/send",
+      "title": "alice writes to the party",
+      "data": {
+        "target": {
+          "type": "party"
+        },
+        "message": "hello party"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "messaging/received",
+      "title": "bob receives it",
+      "expect": {
+        "data": {
+          "message": "hello party",
+          "source": {
+            "type": "party",
+            "partyId": "${party.id}"
+          }
+        }
+      }
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Cleanup: bob leaves the party",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Cleanup: alice leaves the party",
+      "optional": true
+    }
+  ]
+}

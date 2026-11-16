@@ -1,0 +1,51 @@
+{
+  "name": "Subscribe to a user's updates",
+  "category": "User",
+  "description": "Subscribing answers with the current state in a user/updated event.  Based on: user_test.exs (updates: for online user).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "user/subscribeUpdates",
+      "title": "alice subscribes to bob",
+      "data": {
+        "userIds": [
+          "${bob.id}"
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "waitFor": "user/updated",
+      "title": "alice gets bob's full state",
+      "expect": {
+        "data": {
+          "users": [
+            {
+              "username": "${bob.name}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "as": "alice",
+      "command": "user/unsubscribeUpdates",
+      "title": "alice unsubscribes",
+      "data": {
+        "userIds": [
+          "${bob.id}"
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

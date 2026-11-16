@@ -23,6 +23,11 @@ const PORT = Number(process.env.PORT ?? 4747)
 const DATA = process.env.TACHYON_DEBUG_DATA ?? path.join(ROOT, 'data')
 fs.mkdirSync(DATA, { recursive: true })
 const SESSIONS_FILE = path.join(DATA, 'sessions.json')
+const BUILTIN_SCENARIOS = path.join(ROOT, 'scenarios')
+const USER_SCENARIOS = path.join(DATA, 'scenarios')
+fs.mkdirSync(USER_SCENARIOS, { recursive: true })
+const allScenarios = () => [...listScenarios(BUILTIN_SCENARIOS, 'builtin'), ...listScenarios(USER_SCENARIOS, 'user')]
+const slug = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'scenario'
 
 const settings = createSettings(DATA, ROOT)
 let collections = loadCollections(DATA)
@@ -386,7 +391,7 @@ const initPayload = () => ({
   sessions: [...sessions.values()].map(publicSession),
   local: { status: local.status, managed: local.managed, logs: localLogs },
   devStatus,
-  scenarios: listScenarios(path.join(ROOT, 'scenarios'))
+  scenarios: allScenarios()
 })
 
 wss.on('connection', (ui) => {
@@ -453,13 +458,34 @@ wss.on('connection', (ui) => {
           break
 
         case 'runScenario': {
-          const sc = listScenarios(path.join(ROOT, 'scenarios')).find((s) => s.file === m.file)
+          const sc = allScenarios().find((x) => x.id === m.id)
           if (!sc) throw new Error('unknown scenario')
           runScenario(sc, {
             sessions, send, connect,
             onLog: (e) => broadcast({ op: 'scenarioLog', ...e }),
             listen: (fn) => (scenarioListeners.add(fn), () => scenarioListeners.delete(fn))
           })
+          break
+        }
+        case 'scenarioSave': {
+          const sc = m.scenario
+          if (!sc?.name || !Array.isArray(sc.steps)) throw new Error('a scenario needs a name and a list of steps')
+          const clean = { name: String(sc.name), category: sc.category || 'Custom', description: sc.description ?? '', sessions: sc.sessions ?? [], steps: sc.steps }
+          // editing a custom scenario overwrites its file; anything else (new, imported, builtin copy) gets a fresh one
+          let file = m.id?.startsWith('user:') ? m.id.slice(5) : null
+          if (!file) {
+            const base = slug(clean.name)
+            file = `${base}.json`
+            for (let n = 2; fs.existsSync(path.join(USER_SCENARIOS, file)); n++) file = `${base}-${n}.json`
+          }
+          fs.writeFileSync(path.join(USER_SCENARIOS, file), JSON.stringify(clean, null, 2))
+          broadcast({ op: 'scenarios', list: allScenarios(), saved: `user:${file}` })
+          break
+        }
+        case 'scenarioDelete': {
+          if (!m.id?.startsWith('user:')) throw new Error('only your own scenarios can be deleted')
+          fs.rmSync(path.join(USER_SCENARIOS, path.basename(m.id.slice(5))), { force: true })
+          broadcast({ op: 'scenarios', list: allScenarios() })
           break
         }
       }

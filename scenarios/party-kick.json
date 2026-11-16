@@ -1,0 +1,111 @@
+{
+  "name": "Kick a member",
+  "category": "Party",
+  "description": "alice kicks bob out of the party.  Based on: party_test.exs (kick player: works).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: alice leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Reset: bob leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Reset: alice leaves any party",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Reset: bob leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "title": "Let the reset events settle"
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "alice",
+      "command": "party/create",
+      "title": "alice creates a party",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "party": "data.party"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "party/invited",
+      "title": "bob receives the invite"
+    },
+    {
+      "as": "bob",
+      "command": "party/acceptInvite",
+      "title": "bob accepts",
+      "data": {
+        "partyId": "${party.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "drain": "all"
+    },
+    {
+      "as": "alice",
+      "command": "party/kickMember",
+      "title": "alice kicks bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "waitFor": "party/updated",
+      "title": "alice sees the updated party"
+    },
+    {
+      "as": "bob",
+      "waitFor": "party/removed",
+      "title": "bob is told he was removed"
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Cleanup: alice leaves the party",
+      "optional": true
+    }
+  ]
+}

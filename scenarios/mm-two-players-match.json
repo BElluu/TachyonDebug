@@ -1,0 +1,110 @@
+{
+  "name": "Two players get matched",
+  "category": "Matchmaking",
+  "description": "alice and bob join the same 1v1 queue; the queue ticks (every 5s by default) and both get matchmaking/found.  Based on: matchmaking_test.exs (pairing: get found events).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: alice leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Reset: bob leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Reset: alice leaves any party",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Reset: bob leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "title": "Let the reset events settle"
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/list",
+      "title": "Find a 1v1 queue (teamSize 1)",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "queue": "data.playlists.teamSize=1"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/queue",
+      "title": "alice joins",
+      "data": {
+        "queues": [
+          {
+            "id": "${queue.id}",
+            "version": "${queue.version}"
+          }
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/queue",
+      "title": "bob joins",
+      "data": {
+        "queues": [
+          {
+            "id": "${queue.id}",
+            "version": "${queue.version}"
+          }
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "waitFor": "matchmaking/found",
+      "title": "alice is matched",
+      "timeout": 20000
+    },
+    {
+      "as": "bob",
+      "waitFor": "matchmaking/found",
+      "title": "bob is matched",
+      "timeout": 20000
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Cleanup: alice leaves",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Cleanup: bob leaves",
+      "optional": true
+    }
+  ]
+}

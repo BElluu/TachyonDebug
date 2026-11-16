@@ -1,0 +1,18 @@
+{
+  "name": "Server stats",
+  "category": "System",
+  "description": "system/serverStats answers with the number of connected players.  Based on: system_test.exs (server stats: works).",
+  "sessions": [
+    "alice"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "system/serverStats",
+      "title": "alice asks for server stats",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

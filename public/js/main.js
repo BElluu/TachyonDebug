@@ -26,6 +26,7 @@ function handle(m) {
         local: m.local, devStatus: m.devStatus, scenarios: m.scenarios,
         // only commands a client may send
         catalog: m.catalog.commands.filter((c) => c.kinds.request && ['user', 'autohost'].includes(c.kinds.request.source)),
+        events: m.catalog.commands.filter((c) => c.kinds.event).map((c) => c.id),
         sessions: new Map(m.sessions.map((s) => [s.name, s])), ready: true
       })
       bus.emit('init')
@@ -34,6 +35,7 @@ function handle(m) {
     case 'session': state.sessions.set(m.session.name, m.session); bus.emit('session'); break
     case 'sessionRemoved': state.sessions.delete(m.name); bus.emit('sessionRemoved'); break
     case 'collections': state.collections = m.collections; bus.emit('collections'); break
+    case 'scenarios': state.scenarios = m.list; bus.emit('scenarios', m); break
     case 'local': state.local = { ...state.local, status: m.status, managed: m.managed }; bus.emit('local'); break
     case 'devStatus': state.devStatus = m.status; bus.emit('devStatus'); break
     case 'msg':

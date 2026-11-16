@@ -1,0 +1,53 @@
+{
+  "name": "Direct message",
+  "category": "Messaging",
+  "description": "bob subscribes to messages, alice writes to bob.  Based on: messaging_test.exs (send with subscribe latest).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "bob",
+      "command": "messaging/subscribeReceived",
+      "title": "bob subscribes",
+      "expect": {
+        "status": "success"
+      },
+      "data": {
+        "since": {
+          "type": "latest"
+        }
+      }
+    },
+    {
+      "as": "alice",
+      "command": "messaging/send",
+      "title": "alice sends a DM",
+      "data": {
+        "target": {
+          "type": "player",
+          "userId": "${bob.id}"
+        },
+        "message": "GL HF"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "messaging/received",
+      "title": "bob receives it",
+      "expect": {
+        "data": {
+          "message": "GL HF",
+          "source": {
+            "type": "player",
+            "userId": "${alice.id}"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "name": "Last member leaving removes pending invites",
+  "category": "Party",
+  "description": "alice and bob are in a party, carol is invited. When everybody leaves, carol's invite is removed.  Based on: party_test.exs (disconnections: last member leaving notifies invited).",
+  "sessions": [
+    "alice",
+    "bob",
+    "carol"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: alice leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Reset: bob leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "carol",
+      "command": "matchmaking/cancel",
+      "title": "Reset: carol leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Reset: alice leaves any party",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Reset: bob leaves any party",
+      "optional": true
+    },
+    {
+      "as": "carol",
+      "command": "party/leave",
+      "title": "Reset: carol leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "title": "Let the reset events settle"
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "alice",
+      "command": "party/create",
+      "title": "alice creates a party",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "party": "data.party"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "party/invited",
+      "title": "bob receives the invite"
+    },
+    {
+      "as": "bob",
+      "command": "party/acceptInvite",
+      "title": "bob accepts",
+      "data": {
+        "partyId": "${party.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites carol",
+      "data": {
+        "userId": "${carol.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "carol",
+      "waitFor": "party/invited",
+      "title": "carol receives the invite"
+    },
+    {
+      "drain": "all"
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "bob leaves",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "alice (last member) leaves",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "carol",
+      "waitFor": "party/removed",
+      "title": "carol is told the party is gone"
+    }
+  ]
+}

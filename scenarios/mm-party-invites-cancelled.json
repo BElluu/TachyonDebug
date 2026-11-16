@@ -1,0 +1,160 @@
+{
+  "name": "Invites are cancelled when the party queues",
+  "category": "Matchmaking",
+  "description": "carol is invited but not yet a member; when alice queues the party, carol's invite is removed.  Based on: party_matchmaking_test.exs (invites get cancelled when entering matchmaking).",
+  "sessions": [
+    "alice",
+    "bob",
+    "carol"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: alice leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "matchmaking/cancel",
+      "title": "Reset: bob leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "carol",
+      "command": "matchmaking/cancel",
+      "title": "Reset: carol leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Reset: alice leaves any party",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Reset: bob leaves any party",
+      "optional": true
+    },
+    {
+      "as": "carol",
+      "command": "party/leave",
+      "title": "Reset: carol leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "title": "Let the reset events settle"
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/list",
+      "title": "Find a 2v2 queue (teamSize 2)",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "queue": "data.playlists.teamSize=2"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/create",
+      "title": "alice creates a party",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "party": "data.party"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "party/invited",
+      "title": "bob receives the invite"
+    },
+    {
+      "as": "bob",
+      "command": "party/acceptInvite",
+      "title": "bob accepts",
+      "data": {
+        "partyId": "${party.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "party/invite",
+      "title": "alice invites carol",
+      "data": {
+        "userId": "${carol.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "carol",
+      "waitFor": "party/invited",
+      "title": "carol receives the invite"
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/queue",
+      "title": "alice queues the party",
+      "data": {
+        "queues": [
+          {
+            "id": "${queue.id}",
+            "version": "${queue.version}"
+          }
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "carol",
+      "waitFor": "party/removed",
+      "title": "carol's invite is removed"
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Cleanup: leave the queue",
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "party/leave",
+      "title": "Cleanup: bob leaves the party",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "party/leave",
+      "title": "Cleanup: alice leaves the party",
+      "optional": true
+    }
+  ]
+}

@@ -42,7 +42,7 @@ export function sample(schema) {
       const obj = {}
       const required = new Set(schema.required ?? [])
       for (const [k, v] of Object.entries(schema.properties ?? {})) {
-        if (required.has(k)) obj[k] = sample(v)
+        if (required.has(k) || (v && typeof v === 'object' && 'default' in v)) obj[k] = sample(v)
       }
       return obj
     }

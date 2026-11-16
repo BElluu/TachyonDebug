@@ -1,0 +1,77 @@
+{
+  "name": "Join and leave a queue",
+  "category": "Matchmaking",
+  "description": "A solo player joins a queue, cannot join twice, then leaves; leaving again fails with not_queued.  Based on: matchmaking_test.exs (joining queues, leaving queues).",
+  "sessions": [
+    "alice"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "Reset: leave any queue",
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/list",
+      "title": "Find a 1v1 queue (teamSize 1)",
+      "expect": {
+        "status": "success"
+      },
+      "capture": {
+        "queue": "data.playlists.teamSize=1"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/queue",
+      "title": "alice joins the queue",
+      "data": {
+        "queues": [
+          {
+            "id": "${queue.id}",
+            "version": "${queue.version}"
+          }
+        ]
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/queue",
+      "title": "joining twice is rejected",
+      "data": {
+        "queues": [
+          {
+            "id": "${queue.id}",
+            "version": "${queue.version}"
+          }
+        ]
+      },
+      "expect": {
+        "status": "failed",
+        "reason": "already_queued"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "alice leaves the queue",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "matchmaking/cancel",
+      "title": "leaving twice is rejected",
+      "expect": {
+        "status": "failed",
+        "reason": "not_queued"
+      }
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "name": "Friend request: send, accept, remove",
+  "category": "Friends",
+  "description": "alice asks, bob accepts, then alice removes the friend.  Based on: friend_test.exs (friend request lifecycle, removing).",
+  "sessions": [
+    "alice",
+    "bob"
+  ],
+  "steps": [
+    {
+      "as": "alice",
+      "command": "friend/remove",
+      "title": "Reset: alice unfriends bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "friend/remove",
+      "title": "Reset: bob unfriends alice",
+      "data": {
+        "userId": "${alice.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "alice",
+      "command": "friend/cancelRequest",
+      "title": "Reset: cancel pending requests",
+      "data": {
+        "to": "${bob.id}"
+      },
+      "optional": true
+    },
+    {
+      "as": "bob",
+      "command": "friend/cancelRequest",
+      "data": {
+        "to": "${alice.id}"
+      },
+      "optional": true
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "drain": "all"
+    },
+    {
+      "as": "alice",
+      "command": "friend/sendRequest",
+      "title": "alice sends a request",
+      "data": {
+        "to": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "friend/requestReceived",
+      "title": "bob receives it"
+    },
+    {
+      "as": "bob",
+      "command": "friend/acceptRequest",
+      "title": "bob accepts",
+      "data": {
+        "from": "${alice.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "waitFor": "friend/requestAccepted",
+      "title": "alice is told"
+    },
+    {
+      "as": "alice",
+      "command": "friend/list",
+      "title": "alice's friend list",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "alice",
+      "command": "friend/remove",
+      "title": "alice removes bob",
+      "data": {
+        "userId": "${bob.id}"
+      },
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "bob",
+      "waitFor": "friend/removed",
+      "title": "bob is told"
+    }
+  ]
+}
