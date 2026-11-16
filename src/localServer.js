@@ -46,6 +46,16 @@ export function createLocalServer({ dir, httpUrl, onChange, onLog, startTimeoutM
     })
   }
 
+  async function startPostgres() {
+    if (commands.pg === null) return
+    if (commands.pg) return run('pg', commands.pg[0], commands.pg[1])
+    await run('mise run pg:start', 'mise', ['run', 'pg:start']).catch(() =>
+      // no mise task available: fall back to starting pg_ctl directly
+      run('pg_ctl start', 'pg_ctl', ['-D', 'tmp/postgres/data', '-l', 'tmp/postgres.log', 'start'])
+    )
+  }
+  self.ensurePostgres = startPostgres
+
   self.refresh = async () => {
     if (self.status === 'starting' || self.status === 'stopping') return self.status
     set((await isUp(httpUrl)) ? 'up' : 'down')
@@ -59,14 +69,7 @@ export function createLocalServer({ dir, httpUrl, onChange, onLog, startTimeoutM
       if (await isUp(httpUrl)) return set('up')
       set('starting')
       try {
-        if (commands.pg !== null) {
-          if (commands.pg) await run('pg', commands.pg[0], commands.pg[1])
-          else
-            await run('mise run pg:start', 'mise', ['run', 'pg:start']).catch(() =>
-              // no mise task available: fall back to starting pg_ctl directly
-              run('pg_ctl start', 'pg_ctl', ['-D', 'tmp/postgres/data', '-l', 'tmp/postgres.log', 'start'])
-            )
-        }
+        await startPostgres()
         const [c, a] = commands.server ? commands.server : wrap('mix', ['phx.server'])
         onLog('$ mix phx.server')
         // detached => own process group, so we can kill beam and everything under it

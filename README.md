@@ -1,52 +1,34 @@
 # TachyonDebug
 
-Local web UI for poking a Teiserver **Tachyon** server with several clients at once.
-
-- Many named sessions (alice, bob, …), each with its own token and WebSocket.
-- Command picker generated from the protocol schemas (`../tachyon/schema`), with a
-  ready-to-edit JSON template and the list of failure reasons.
-- One timeline with every message from every session (filter, columns per session,
-  resend/edit, responses labelled with their command).
-- Scenarios: scripted multi-client flows (`scenarios/*.json`) with assertions.
-- Token generation via `mix teiserver.gen_token` from the UI.
-
-## Run
+A launcher-style workbench for poking a Teiserver **Tachyon** server with several players at once.
 
 ```bash
 npm install
-npm start            # http://localhost:4747
+npm start          # http://localhost:4747  (first run opens a setup wizard)
 npm test
 ```
 
-Env vars: `PORT` (4747), `TACHYON_DIR` (`../tachyon`), `TEISERVER_DIR` (`../teiserver`),
-`TACHYON_URL` (`ws://localhost:4000/tachyon`).
+## What you get
 
-## Environments
+- **Setup wizard** on first run: finds your Teiserver and Tachyon-protocol checkouts, validates them,
+  sets up the servers and your first players. Everything stays editable in **Settings**
+  (`data/settings.json`).
+- **Players** (top bar): one click creates sessions. *Local*: pick users that already exist in your
+  local Teiserver (read from its dev database) and give each a session name such as `alice` (scenarios
+  and saved requests use `alice`, `bob`, `carol`). The helper starts Teiserver if needed, generates a
+  token for each user (`mix teiserver.gen_token`), and renews it by itself when it expires.
+  *Dev* (`lobby-server-dev.beyondallreason.dev`): browser login (OAuth + PKCE), the refresh token is
+  kept so you log in once. Pasting a token by hand is under *I already have a token*.
+- **Collections** (sidebar), Postman style: folders of saved requests, drag to move, search, history.
+  Each request opens in a tab; `Ctrl+Enter` sends, `Ctrl+S` saves, `/` jumps to the command box.
+  `${bob.id}` in a body is replaced with the user id of the connected player `bob`.
+- **Response pane** with status, failure reason and latency, and a **Timeline** with every message of
+  every player (filters, per-player columns, resend, save as request).
+- **Scenarios** (`scenarios/*.json`): scripted multi-player flows with assertions, see below.
+- **Status bar**: local server state with Start/Stop (it can also stop a server you started yourself,
+  after asking) and dev-server reachability. The log of a server started from here is under *Log*.
 
-| env   | url                                                  | token                                   |
-|-------|------------------------------------------------------|-----------------------------------------|
-| local | `ws://localhost:4000/tachyon` (a `../teiserver` checkout) | **generate token** (`mix teiserver.gen_token`) |
-| dev   | `wss://lobby-server-dev.beyondallreason.dev/tachyon` | **log in via browser** (OAuth + PKCE), or paste one |
-
-- **Local autostart**: connecting a `local` session when nothing listens on port 4000 starts
-  Postgres (`mise run pg:start`) and `mix phx.server` in `TEISERVER_DIR`, streams its log in the
-  *Local Teiserver* panel and waits until it answers. The *start*/*stop* buttons do the same by hand.
-  *stop* only works on a server TachyonDebug started itself, and it is stopped when TachyonDebug exits.
-  A server you started yourself is detected and left alone.
-- **Dev login**: opens the dev server's `/oauth/authorize` in a browser tab and catches the redirect on
-  a loopback port (client id `generic_lobby`, override with `TACHYON_CLIENT_ID`). The refresh token is
-  kept in `data/sessions.json` and used to renew the access token on reconnect.
-  The dev server must accept that client and loopback redirect URIs.
-
-Extra env vars: `TACHYON_DEV_URL` (default `https://lobby-server-dev.beyondallreason.dev`).
-
-## Use
-
-1. For `local`, run `mix teiserver.tachyon_setup` once in Teiserver (the server itself starts on demand).
-2. In the UI: *add session*, pick the environment, get a token (see above), **connect**.
-   For `local` the name must be the Teiserver username. Sessions (incl. tokens) are saved in
-   `data/sessions.json` (git-ignored).
-3. Pick a command on the right, edit the JSON, **Ctrl+Enter** to send. `/` focuses the search.
+The command list and the JSON templates come from the protocol repo's `schema/` folder.
 
 ## Scenarios
 
@@ -60,10 +42,17 @@ Extra env vars: `TACHYON_DEV_URL` (default `https://lobby-server-dev.beyondallre
   ] }
 ```
 
-- `${session.id}` / `${session.name}`: user learned from the `user/self` event on connect.
-- `capture` stores a value from the response/event; path segments are keys, indexes or
-  `field=value` to pick an array element. Use it as `${var.path}`.
+- `${player.id}` / `${player.name}`: user learned from the `user/self` event on connect.
+- `capture` stores a value from the response/event. Path segments are keys, indexes, or `field=value`
+  to pick an array element. Use it as `${var.path}`.
 - `expect` is a subset match. Events arriving before their `waitFor` step are buffered.
-- 5s timeout per step; the run aborts on the first failure.
+- 5 s timeout per step, the run aborts on the first failure.
 
-`scenarios/party-cancel-matchmaking.json` reproduces issue #1475.
+`scenarios/party-cancel-matchmaking.json` reproduces Teiserver issue #1475.
+
+## Configuration
+
+Defaults come from env vars and are then stored by the wizard: `PORT` (4747), `TEISERVER_DIR`,
+`TACHYON_DIR`, `TACHYON_URL`, `TACHYON_DEV_URL`, `TACHYON_CLIENT_ID`, and `TACHYON_DEBUG_DATA`
+(where `data/` lives). Tokens never reach the browser; they stay in the helper process and in
+`data/sessions.json` (git-ignored).
