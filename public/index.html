@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TachyonDebug</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700&family=Poppins:wght@300;400;500;600&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <strong class="brand"><span class="star">★</span> Tachyon<span class="thin">Debug</span></strong>
+  <span id="conn" class="pill">UI: connecting…</span>
+  <span class="spacer"></span>
+  <span id="cfg" class="muted"></span>
+</header>
+
+<main>
+  <aside id="left">
+    <section>
+      <h2>Local Teiserver</h2>
+      <div class="row center">
+        <span id="lDot" class="dot"></span><span id="lStatus">unknown</span>
+        <span class="spacer"></span>
+        <button id="lStart">start</button>
+        <button id="lStop">stop</button>
+      </div>
+      <div id="lMsg" class="err"></div>
+      <details><summary>server log</summary><pre id="lLog"></pre></details>
+    </section>
+    <section>
+      <h2>Sessions</h2>
+      <div id="sessions"></div>
+      <details id="addSession">
+        <summary>+ add session</summary>
+        <label>environment <select id="sEnv"></select></label>
+        <label>name <input id="sName" placeholder="alice"></label>
+        <label>token <input id="sToken" placeholder="paste a token, or get one ↓"></label>
+        <label>url <input id="sUrl"></label>
+        <div class="row">
+          <button id="sGen" title="runs `mix teiserver.gen_token --user <name>` in the teiserver dir">generate token (local)</button>
+          <button id="sLogin" title="OAuth login in your browser against the dev server">log in via browser (dev)</button>
+        </div>
+        <div class="row"><button id="sConnect" class="primary">connect</button></div>
+        <div id="sMsg" class="muted"></div>
+      </details>
+    </section>
+    <section>
+      <h2>Toolbox</h2>
+      <div id="toolbox"></div>
+      <div class="muted">Save requests from the composer (☆) or from the log. Use <code>${bob.id}</code> for a connected user's id.</div>
+    </section>
+    <section>
+      <h2>Scenarios</h2>
+      <div id="scenarios"></div>
+    </section>
+  </aside>
+
+  <section id="center">
+    <div id="filters">
+      <input id="fText" placeholder="filter text (e.g. party/)">
+      <span id="fSessions"></span>
+      <label><input type="checkbox" id="fSys" checked> system</label>
+      <label><input type="checkbox" id="fSideBySide"> columns</label>
+      <button id="fClear">clear</button>
+    </div>
+    <div id="log"></div>
+  </section>
+
+  <aside id="right">
+    <h2>Send</h2>
+    <label>as <select id="cSession"></select></label>
+    <input id="cSearch" placeholder="search command… (/ to focus)" autocomplete="off">
+    <div id="cList"></div>
+    <div id="cInfo" class="muted"></div>
+    <textarea id="cData" spellcheck="false" placeholder="data (JSON)"></textarea>
+    <div class="row">
+      <button id="cSend" class="primary">send (Ctrl+Enter)</button>
+      <button id="cRaw" title="send the textarea content as-is, as the whole frame">raw frame</button>
+      <button id="cSave" title="save this request in the toolbox">☆ save to toolbox</button>
+    </div>
+    <label class="inline"><input type="checkbox" id="cBind"> remember the session with the request</label>
+    <div id="cErr" class="err"></div>
+    <h2>History</h2>
+    <div id="hist"></div>
+  </aside>
+</main>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

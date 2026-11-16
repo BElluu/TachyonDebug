@@ -1,0 +1,16 @@
+{
+  "name": "Party: cancel matchmaking then invite (#1475)",
+  "description": "Regression check for a party stuck in 'matchmaking' after a cancel. Needs sessions 'alice', 'bob', 'carol' connected, and a queue with teamSize 2.",
+  "sessions": ["alice", "bob", "carol"],
+  "steps": [
+    { "as": "alice", "command": "matchmaking/list", "capture": { "queue": "data.playlists.teamSize=2" } },
+    { "as": "alice", "command": "party/create", "expect": { "status": "success" } },
+    { "as": "alice", "command": "party/invite", "data": { "userId": "${bob.id}" }, "expect": { "status": "success" } },
+    { "as": "bob", "waitFor": "party/invited", "capture": { "party": "data.party" } },
+    { "as": "bob", "command": "party/acceptInvite", "data": { "partyId": "${party.id}" }, "expect": { "status": "success" } },
+    { "as": "alice", "command": "matchmaking/queue", "data": { "queues": [{ "id": "${queue.id}", "version": "${queue.version}" }] }, "expect": { "status": "success" } },
+    { "as": "alice", "command": "matchmaking/cancel", "expect": { "status": "success" } },
+    { "as": "bob", "waitFor": "matchmaking/cancelled" },
+    { "as": "alice", "command": "party/invite", "data": { "userId": "${carol.id}" }, "expect": { "status": "success" } }
+  ]
+}
