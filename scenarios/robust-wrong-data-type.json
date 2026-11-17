@@ -1,0 +1,73 @@
+{
+  "name": "Wrong data types are rejected",
+  "category": "Robustness",
+  "description": "party/invite with data that is a string, and with a userId that is a number instead of a string. Expect failed responses (invalid_request or similar), and a healthy server afterwards.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "as": "player1",
+      "command": "matchmaking/cancel",
+      "title": "Reset: player1 leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "player1",
+      "command": "party/leave",
+      "title": "Reset: player1 leaves any party",
+      "optional": true
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "messageId": "raw-bad-data-1",
+        "commandId": "party/invite",
+        "data": "oops"
+      },
+      "waitReply": true,
+      "expect": {
+        "type": "response",
+        "messageId": "raw-bad-data-1",
+        "status": "failed"
+      },
+      "title": "data is a string"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "messageId": "raw-bad-data-2",
+        "commandId": "party/invite",
+        "data": {
+          "userId": 12345
+        }
+      },
+      "waitReply": true,
+      "expect": {
+        "type": "response",
+        "messageId": "raw-bad-data-2",
+        "status": "failed"
+      },
+      "title": "userId is a number"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "The server still answers normal requests",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

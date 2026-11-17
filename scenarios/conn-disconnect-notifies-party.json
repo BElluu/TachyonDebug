@@ -1,0 +1,121 @@
+{
+  "name": "Abrupt disconnect is noticed by the party",
+  "category": "Connection",
+  "description": "player1 and player2 are in a party; player2's connection is killed. player1 must eventually be told (party/updated) that player2 is gone. Uses a 15 s timeout since a server may wait before it declares a player gone. player2 reconnects at the end.",
+  "sessions": [
+    "player1",
+    "player2"
+  ],
+  "steps": [
+    {
+      "as": "player1",
+      "command": "matchmaking/cancel",
+      "title": "Reset: player1 leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "player1",
+      "command": "party/leave",
+      "title": "Reset: player1 leaves any party",
+      "optional": true
+    },
+    {
+      "as": "player2",
+      "command": "matchmaking/cancel",
+      "title": "Reset: player2 leaves matchmaking",
+      "optional": true
+    },
+    {
+      "as": "player2",
+      "command": "party/leave",
+      "title": "Reset: player2 leaves any party",
+      "optional": true
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "player1",
+      "command": "party/create",
+      "expect": {
+        "status": "success"
+      },
+      "title": "player1 creates a party"
+    },
+    {
+      "as": "player1",
+      "command": "party/invite",
+      "data": {
+        "userId": "${player2.id}"
+      },
+      "expect": {
+        "status": "success"
+      },
+      "title": "player1 invites player2"
+    },
+    {
+      "as": "player2",
+      "waitFor": "party/invited",
+      "capture": {
+        "party": "data.party"
+      },
+      "title": "player2 is invited"
+    },
+    {
+      "as": "player2",
+      "command": "party/acceptInvite",
+      "data": {
+        "partyId": "${party.id}"
+      },
+      "expect": {
+        "status": "success"
+      },
+      "title": "player2 accepts"
+    },
+    {
+      "as": "player1",
+      "waitFor": "party/updated",
+      "expect": {
+        "data": {
+          "members": [
+            {},
+            {}
+          ]
+        }
+      },
+      "title": "player1 sees two members"
+    },
+    {
+      "as": "player1",
+      "drain": true,
+      "title": "Forget player1's earlier party updates"
+    },
+    {
+      "as": "player2",
+      "disconnect": "terminate",
+      "title": "player2's connection is killed"
+    },
+    {
+      "as": "player1",
+      "waitFor": "party/updated",
+      "timeout": 15000,
+      "title": "player1 is told player2 is gone",
+      "note": "Passes as soon as another party/updated arrives after the kill."
+    },
+    {
+      "as": "player2",
+      "reconnect": true,
+      "title": "player2 comes back"
+    },
+    {
+      "as": "player1",
+      "command": "party/leave",
+      "optional": true,
+      "title": "Cleanup: player1 leaves"
+    }
+  ]
+}

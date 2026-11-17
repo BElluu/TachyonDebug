@@ -88,6 +88,7 @@ const ICONS = {
   down: '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
   x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
   minus: '<line x1="5" y1="12" x2="19" y2="12"/>'
 }
 export function icon(name) {
@@ -95,4 +96,25 @@ export function icon(name) {
   span.className = 'ico'
   span.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] ?? ''}</svg>`
   return span
+}
+
+// Drag a vertical handle to resize a column. The width lives in a CSS variable on <html> and is remembered.
+export function initColResize(handle, { varName, key, min = 220, max = 700, def = 300 }) {
+  const root = document.documentElement
+  const apply = (w) => root.style.setProperty(varName, `${Math.round(Math.min(Math.max(w, min), Math.min(max, window.innerWidth - 360)))}px`)
+  apply(store.get(key, def))
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = handle.parentElement.getBoundingClientRect().width
+    const move = (ev) => apply(startW + ev.clientX - startX)
+    const up = () => {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up)
+      document.body.classList.remove('resizing-col'); handle.classList.remove('drag')
+      store.set(key, parseInt(root.style.getPropertyValue(varName), 10))
+    }
+    document.body.classList.add('resizing-col'); handle.classList.add('drag')
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up)
+  })
+  handle.addEventListener('dblclick', () => { apply(def); store.set(key, def) })
 }

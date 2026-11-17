@@ -3,13 +3,13 @@
   "category": "Matchmaking",
   "description": "matchmaking/list must succeed and give playlists. Fails on the capture if the server has no queue configured.  Based on: matchmaking_test.exs (list: works).",
   "sessions": [
-    "alice"
+    "player1"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/list",
-      "title": "alice lists the queues",
+      "title": "player1 lists the queues",
       "expect": {
         "status": "success"
       },

@@ -1,6 +1,7 @@
 // Session bar ("players") and the new-session dialog.
 import { $, el, state, bus, api, store, colorFor } from './core.js'
 import { modal, toast } from './modal.js'
+import { connectionMenu } from './robustness.js'
 
 const STATE_LABEL = { open: 'connected', connecting: 'connecting…', closed: 'offline' }
 
@@ -44,6 +45,7 @@ function openMenu(s, anchor) {
       : s.state === 'closed' ? el('button', { onclick: act(() => api.call({ op: 'connect', name: s.name })) }, 'Connect') : null,
     s.tokenUser ? el('div', { class: 'menu-note' }, `Teiserver user: ${s.tokenUser}`) : null,
     s.user ? el('button', { onclick: act(() => navigator.clipboard?.writeText(String(s.user.id))) }, `Copy user id (${s.user.id})`) : null,
+    ...connectionMenu(s, act),
     el('button', { class: 'danger-text', onclick: act(() => api.call({ op: 'removeSession', name: s.name })) }, 'Remove'))
   document.body.append(menu)
   const away = (e) => { if (!menu?.contains(e.target)) { menu?.remove(); document.removeEventListener('mousedown', away) } }
@@ -52,7 +54,7 @@ function openMenu(s, anchor) {
 
 // ---- new session dialog ---------------------------------------------------------------
 export function openNewSession({ onDone } = {}) {
-  let envKey = store.get('newSessionEnv', 'local')
+  let envKey = state.settings.devOnly ? 'dev' : store.get('newSessionEnv', 'local')
   const panel = el('div')
   const cards = el('div', { class: 'env-cards' })
   const m = modal({ title: 'Add players', wide: true, body: [cards, panel] })
@@ -64,13 +66,12 @@ export function openNewSession({ onDone } = {}) {
   function draw() {
     const ls = state.local.status
     cards.replaceChildren(
-      envCard('local', 'Local', 'Your own Teiserver', el('span', { class: 'status-line' }, el('span', { class: `dot ${ls}` }), ls === 'up' ? 'running' : ls === 'starting' ? 'starting…' : 'not running, will start automatically')),
+      ...(state.settings.devOnly ? [] : [envCard('local', 'Local', 'Your own Teiserver', el('span', { class: 'status-line' }, el('span', { class: `dot ${ls}` }), ls === 'up' ? 'running' : ls === 'starting' ? 'starting…' : 'not running, will start automatically'))]),
       envCard('dev', 'Dev', 'lobby-server-dev.beyondallreason.dev', el('span', { class: 'status-line' }, el('span', { class: `dot ${state.devStatus === 'reachable' ? 'up' : 'down'}` }), state.devStatus === 'reachable' ? 'reachable' : state.devStatus)))
     panel.replaceChildren(envKey === 'local' ? localForm() : devForm(), advanced())
   }
 
   function localForm() {
-    const ALIASES = ['alice', 'bob', 'carol', 'dave', 'erin', 'frank', 'grace', 'heidi']
     const chosen = [] // { user, alias }
     const wrap = el('div', { class: 'form' })
     const list = el('div', { class: 'user-list' }, el('div', { class: 'empty' }, el('span', { class: 'spinner' }), ' reading users from the local database…'))
@@ -80,14 +81,17 @@ export function openNewSession({ onDone } = {}) {
     const goBtn = el('button', { class: 'primary' }, 'Create & connect')
     let users = []
 
-    const freeAlias = (user) => {
+    // sessions are called player1, player2, … (scenarios are written for those names)
+    const freeAlias = () => {
       const used = new Set([...state.sessions.keys(), ...chosen.map((c) => c.alias)])
-      return ALIASES.find((a) => !used.has(a)) ?? user
+      let n = 1
+      while (used.has(`player${n}`)) n++
+      return `player${n}`
     }
     const toggle = (user) => {
       const i = chosen.findIndex((c) => c.user === user)
       if (i >= 0) chosen.splice(i, 1)
-      else chosen.push({ user, alias: freeAlias(user) })
+      else chosen.push({ user, alias: freeAlias() })
       drawPicked(); drawList()
     }
     function drawPicked() {
@@ -127,14 +131,15 @@ export function openNewSession({ onDone } = {}) {
     wrap.append(
       el('label', {}, 'Users that exist on your local Teiserver (click to select)'), search, list,
       el('label', {}, 'Players to add: session name ← Teiserver user'), picked, manual,
-      el('p', { class: 'muted' }, 'Tokens are generated for you, and Teiserver is started if it is not running. The session name is only a label; scenarios and saved requests use alice, bob, carol…'),
+      el('p', { class: 'muted' }, 'Tokens are generated for you, and Teiserver is started if it is not running. The session name is only a label; scenarios and saved requests use player1, player2, player3…'),
       el('div', { class: 'row end' }, goBtn))
     return wrap
   }
 
   function devForm() {
-    const existing = [...state.sessions.keys()].filter((n) => /^dev/.test(n)).length
-    const input = el('input', { value: existing ? `dev${existing + 1}` : 'dev', spellcheck: false })
+    let n = 1
+    while (state.sessions.has(`player${n}`)) n++
+    const input = el('input', { value: `player${n}`, spellcheck: false })
     const go = () => {
       const name = input.value.trim()
       if (!name) return input.focus()

@@ -1,34 +1,34 @@
 {
   "name": "Cancel an invite",
   "category": "Party",
-  "description": "alice withdraws an invite; bob receives party/removed; cancelling again fails.  Based on: party_test.exs (can cancel invite).",
+  "description": "player1 withdraws an invite; player2 receives party/removed; cancelling again fails.  Based on: party_test.exs (can cancel invite).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,9 +40,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -51,46 +51,46 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite"
+      "title": "player2 receives the invite"
     },
     {
       "drain": "all"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/cancelInvite",
-      "title": "alice cancels the invite",
+      "title": "player1 cancels the invite",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/removed",
-      "title": "bob is told the invite is gone"
+      "title": "player2 is told the invite is gone"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/cancelInvite",
       "title": "cancelling twice is rejected",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "failed",
@@ -98,9 +98,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

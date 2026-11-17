@@ -1,0 +1,38 @@
+{
+  "name": "Reconnect after the connection is killed",
+  "category": "Connection",
+  "description": "player1's TCP connection dies without a close frame (like a crash or a lost network). She reconnects with the same token and everything works again.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "as": "player1",
+      "disconnect": "terminate",
+      "title": "Kill the connection"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "as": "player1",
+      "reconnect": true,
+      "title": "Reconnect with the stored token"
+    },
+    {
+      "as": "player1",
+      "waitFor": "user/self",
+      "optional": true,
+      "title": "The server sends user/self again",
+      "note": "Skipped, not failed, if the server does not repeat it."
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "Requests work again",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

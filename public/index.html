@@ -4,16 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TachyonDebug</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Poppins:wght@300;400;500&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div id="helperDown" class="helper-down hidden">Lost the connection to the TachyonDebug helper process. Reconnecting…</div>
 
 <header class="topbar">
-  <div class="brand"><span class="star">★</span> TACHYON<span class="thin">DEBUG</span></div>
+  <div class="brand">tachyon<span class="thin">-debug</span></div>
   <nav id="nav">
     <button data-view="workbench">Workbench</button>
     <button data-view="scenarios">Scenarios</button>
@@ -28,7 +25,10 @@
       <button data-view="collections">Collections</button>
       <button data-view="history">History</button>
     </div>
-    <input id="sbSearch" class="search" placeholder="Search requests…" spellcheck="false">
+    <div class="row tight searchrow">
+      <input id="sbSearch" class="search" placeholder="Search requests…" spellcheck="false">
+      <button id="fromProto" class="icon-btn" title="Refresh from protocol: add the commands that are missing from your collections"></button>
+    </div>
     <div id="sbTools" class="row">
       <button id="newReq">+ Request</button>
       <button id="newColl">+ Collection</button>
@@ -38,11 +38,12 @@
       <button id="expAll" class="small" title="export every collection to one file">Export all</button>
     </div>
     <div id="tree" class="tree"></div>
+    <div id="sbResize" class="col-resizer" title="drag to resize (double-click resets)"></div>
   </aside>
 
   <div class="main">
     <div class="playerbar">
-      <span class="label">PLAYERS</span>
+      <span class="label">Players</span>
       <div id="sessionlist" class="sessionlist"></div>
       <button id="addSession" class="primary">+ Add player</button>
     </div>
@@ -62,32 +63,42 @@
           <input id="bCmd" placeholder="Command, e.g. party/invite  ( / )" spellcheck="false" autocomplete="off">
           <div id="bList" class="combo-list hidden"></div>
         </div>
-        <button id="bSend" class="primary big" title="Ctrl+Enter">SEND</button>
+        <button id="bSend" class="primary big" title="Ctrl+Enter">Send</button>
       </div>
       <div id="bInfo" class="info"></div>
       <div class="editor">
         <div class="editor-head">
-          <span class="label">BODY · JSON</span><span id="bValid" class="valid"></span>
+          <span class="label">Body · JSON</span><span id="bValid" class="valid"></span>
           <span class="spacer"></span>
+          <span id="bSchema" class="valid"></span>
+          <button id="bFields" class="small" title="fields of this command, from the protocol schema">Fields</button>
+          <button id="bFill" class="small" title="insert every field of the schema (keeps values you already typed)">Fill all</button>
+          <button id="bRaw" class="small" title="send a hand-made text frame to test how the server handles bad input">Raw frame…</button>
           <button id="bFormat" class="small">Format</button>
           <button id="bSave" class="small" title="Ctrl+S">★ Save</button>
         </div>
+        <div id="bIssues" class="issues hidden"></div>
+        <div id="bFieldList" class="fieldlist hidden"></div>
         <textarea id="bBody" spellcheck="false" placeholder="{ }"></textarea>
       </div>
+      <div id="splitter" class="splitter" title="drag to resize the body / response split (double-click to reset)"></div>
     </div>
 
     <div class="bottom">
       <div id="bottomTabs" class="seg left">
         <button data-pane="response">Response</button>
         <button data-pane="timeline">Timeline <span id="tlCount" class="count">0</span></button>
+        <button data-pane="state">Player state</button>
       </div>
       <div id="response" class="pane"></div>
+      <div id="stateView" class="pane hidden"></div>
       <div id="timeline" class="pane hidden">
         <div class="filters">
           <input id="fText" placeholder="Filter…" spellcheck="false">
           <span id="fSessions" class="fsessions"></span>
           <label class="inline"><input type="checkbox" id="fSys" checked> system</label>
           <label class="inline"><input type="checkbox" id="fCols"> columns</label>
+          <label class="inline" title="only messages that break the protocol schema"><input type="checkbox" id="fBad"> schema issues only</label>
           <button id="fClear" class="small">Clear</button>
         </div>
         <div class="log-wrap"><div id="log" class="log"></div><button id="jump" class="primary small hidden">↓ new messages</button></div>

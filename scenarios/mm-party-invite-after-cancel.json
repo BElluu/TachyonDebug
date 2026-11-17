@@ -1,47 +1,48 @@
 {
   "name": "Party can invite again after cancelling matchmaking (#1475)",
   "category": "Matchmaking",
-  "description": "Regression check for a party stuck in 'in matchmaking' after a cancel: invites and queueing must work again.  Based on: GitHub issue #1475.",
+  "description": "Regression check for a party stuck in 'in matchmaking' after a cancel: invites and queueing must work again.",
+  "issue": "https://github.com/beyond-all-reason/teiserver/issues/1475",
   "sessions": [
-    "alice",
-    "bob",
-    "carol"
+    "player1",
+    "player2",
+    "player3"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "carol",
+      "as": "player3",
       "command": "matchmaking/cancel",
-      "title": "Reset: carol leaves matchmaking",
+      "title": "Reset: player3 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
-      "as": "carol",
+      "as": "player3",
       "command": "party/leave",
-      "title": "Reset: carol leaves any party",
+      "title": "Reset: player3 leaves any party",
       "optional": true
     },
     {
@@ -53,7 +54,7 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/list",
       "title": "Find a 2v2 queue (teamSize 2)",
       "expect": {
@@ -64,9 +65,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -75,25 +76,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite"
+      "title": "player2 receives the invite"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
-      "title": "bob accepts",
+      "title": "player2 accepts",
       "data": {
         "partyId": "${party.id}"
       },
@@ -102,9 +103,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
-      "title": "alice queues the party",
+      "title": "player1 queues the party",
       "data": {
         "queues": [
           {
@@ -118,31 +119,31 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "alice cancels",
+      "title": "player1 cancels",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "matchmaking/cancelled",
-      "title": "bob is told"
+      "title": "player2 is told"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
       "title": "inviting must work again (was party_in_matchmaking)",
       "data": {
-        "userId": "${carol.id}"
+        "userId": "${player3.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
       "title": "queueing must work again",
       "data": {
@@ -158,21 +159,21 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
       "title": "Cleanup: leave the queue",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Cleanup: bob leaves the party",
+      "title": "Cleanup: player2 leaves the party",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

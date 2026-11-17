@@ -1,16 +1,16 @@
 {
   "name": "Direct message",
   "category": "Messaging",
-  "description": "bob subscribes to messages, alice writes to bob.  Based on: messaging_test.exs (send with subscribe latest).",
+  "description": "player2 subscribes to messages, player1 writes to player2.  Based on: messaging_test.exs (send with subscribe latest).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "bob",
+      "as": "player2",
       "command": "messaging/subscribeReceived",
-      "title": "bob subscribes",
+      "title": "player2 subscribes",
       "expect": {
         "status": "success"
       },
@@ -21,13 +21,13 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "messaging/send",
-      "title": "alice sends a DM",
+      "title": "player1 sends a DM",
       "data": {
         "target": {
           "type": "player",
-          "userId": "${bob.id}"
+          "userId": "${player2.id}"
         },
         "message": "GL HF"
       },
@@ -36,15 +36,15 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "messaging/received",
-      "title": "bob receives it",
+      "title": "player2 receives it",
       "expect": {
         "data": {
           "message": "GL HF",
           "source": {
             "type": "player",
-            "userId": "${alice.id}"
+            "userId": "${player1.id}"
           }
         }
       }

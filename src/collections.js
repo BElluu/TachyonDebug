@@ -13,7 +13,7 @@ function starter() {
       name: 'Party',
       requests: [
         req('Create party', 'party/create'),
-        req('Invite bob', 'party/invite', { userId: '${bob.id}' }),
+        req('Invite player2', 'party/invite', { userId: '${player2.id}' }),
         req('Leave party', 'party/leave')
       ]
     },

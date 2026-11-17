@@ -3,13 +3,13 @@
   "category": "System",
   "description": "system/serverStats answers with the number of connected players.  Based on: system_test.exs (server stats: works).",
   "sessions": [
-    "alice"
+    "player1"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "system/serverStats",
-      "title": "alice asks for server stats",
+      "title": "player1 asks for server stats",
       "expect": {
         "status": "success"
       }

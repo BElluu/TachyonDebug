@@ -1,0 +1,49 @@
+{
+  "name": "Duplicate messageId does not break the connection",
+  "category": "Robustness",
+  "description": "Two requests with the same messageId are sent back to back. Whatever the server decides to do, it must keep serving requests afterwards.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "messageId": "dup-1",
+        "commandId": "system/serverStats"
+      },
+      "title": "First request, id dup-1"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "messageId": "dup-1",
+        "commandId": "system/serverStats"
+      },
+      "title": "Second request, same id"
+    },
+    {
+      "sleep": 500,
+      "title": "Let the server answer"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "The server still answers normal requests",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

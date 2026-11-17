@@ -1,47 +1,47 @@
 {
   "name": "Last member leaving removes pending invites",
   "category": "Party",
-  "description": "alice and bob are in a party, carol is invited. When everybody leaves, carol's invite is removed.  Based on: party_test.exs (disconnections: last member leaving notifies invited).",
+  "description": "player1 and player2 are in a party, player3 is invited. When everybody leaves, player3's invite is removed.  Based on: party_test.exs (disconnections: last member leaving notifies invited).",
   "sessions": [
-    "alice",
-    "bob",
-    "carol"
+    "player1",
+    "player2",
+    "player3"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "carol",
+      "as": "player3",
       "command": "matchmaking/cancel",
-      "title": "Reset: carol leaves matchmaking",
+      "title": "Reset: player3 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
-      "as": "carol",
+      "as": "player3",
       "command": "party/leave",
-      "title": "Reset: carol leaves any party",
+      "title": "Reset: player3 leaves any party",
       "optional": true
     },
     {
@@ -53,9 +53,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -64,25 +64,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite"
+      "title": "player2 receives the invite"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
-      "title": "bob accepts",
+      "title": "player2 accepts",
       "data": {
         "partyId": "${party.id}"
       },
@@ -91,44 +91,44 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites carol",
+      "title": "player1 invites player3",
       "data": {
-        "userId": "${carol.id}"
+        "userId": "${player3.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "carol",
+      "as": "player3",
       "waitFor": "party/invited",
-      "title": "carol receives the invite"
+      "title": "player3 receives the invite"
     },
     {
       "drain": "all"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "bob leaves",
+      "title": "player2 leaves",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "alice (last member) leaves",
+      "title": "player1 (last member) leaves",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "carol",
+      "as": "player3",
       "waitFor": "party/removed",
-      "title": "carol is told the party is gone"
+      "title": "player3 is told the party is gone"
     }
   ]
 }

@@ -1,34 +1,34 @@
 {
   "name": "Party chat",
   "category": "Messaging",
-  "description": "alice writes to the party; bob receives it with a party source.  Based on: messaging_test.exs (messaging in party).",
+  "description": "player1 writes to the party; player2 receives it with a party source.  Based on: messaging_test.exs (messaging in party).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,9 +40,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -51,25 +51,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite"
+      "title": "player2 receives the invite"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
-      "title": "bob accepts",
+      "title": "player2 accepts",
       "data": {
         "partyId": "${party.id}"
       },
@@ -78,9 +78,9 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "messaging/subscribeReceived",
-      "title": "bob subscribes",
+      "title": "player2 subscribes",
       "expect": {
         "status": "success"
       },
@@ -94,9 +94,9 @@
       "drain": "all"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "messaging/send",
-      "title": "alice writes to the party",
+      "title": "player1 writes to the party",
       "data": {
         "target": {
           "type": "party"
@@ -108,9 +108,9 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "messaging/received",
-      "title": "bob receives it",
+      "title": "player2 receives it",
       "expect": {
         "data": {
           "message": "hello party",
@@ -122,15 +122,15 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Cleanup: bob leaves the party",
+      "title": "Cleanup: player2 leaves the party",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

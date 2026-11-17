@@ -12,14 +12,15 @@ import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { WebSocket, WebSocketServer } from 'ws'
 import { buildCatalog } from './catalog.js'
+import { createValidator } from './validate.js'
 import { runScenario, listScenarios, subst } from './scenarios.js'
 import { createLocalServer } from './localServer.js'
 import { startLogin, refresh } from './oauth.js'
-import { createSettings, checkTeiserver, checkTachyon, detect, expandHome } from './settings.js'
+import { createSettings, checkTeiserver, checkTachyon, detect, expandHome, resolveRepoDir, isGitUrl, fetchRepo } from './settings.js'
 import { loadCollections, saveCollections } from './collections.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const PORT = Number(process.env.PORT ?? 4747)
+const PORT = Number(process.env.PORT ?? 2137)
 const DATA = process.env.TACHYON_DEBUG_DATA ?? path.join(ROOT, 'data')
 fs.mkdirSync(DATA, { recursive: true })
 const SESSIONS_FILE = path.join(DATA, 'sessions.json')
@@ -41,7 +42,7 @@ const toast = (level, text) => broadcast({ op: 'toast', level, text })
 
 // ---- settings-derived state ----------------------------------------------------
 
-let ENVS, catalog, local
+let ENVS, catalog, local, validator
 const localLogs = []
 
 function buildEnvs(s) {
@@ -59,7 +60,8 @@ function buildEnvs(s) {
 function applySettings() {
   const s = settings.get()
   ENVS = buildEnvs(s)
-  catalog = buildCatalog(path.join(path.resolve(expandHome(s.tachyonDir)), 'schema'))
+  catalog = buildCatalog(path.join(resolveRepoDir(DATA, s.tachyonDir), 'schema'))
+  validator = createValidator(catalog.full)
   const prev = local
   local = createLocalServer({
     dir: path.resolve(expandHome(s.teiserverDir)),
@@ -78,7 +80,7 @@ function applySettings() {
 
 const currentChecks = () => {
   const s = settings.get()
-  return { teiserver: checkTeiserver(s.teiserverDir), tachyon: checkTachyon(s.tachyonDir) }
+  return { teiserver: checkTeiserver(s.teiserverDir), tachyon: checkTachyon(s.tachyonDir, DATA) }
 }
 
 // ---- dev server reachability ---------------------------------------------------
@@ -124,6 +126,11 @@ const emitSession = (s) => broadcast({ op: 'session', session: publicSession(s) 
 const scenarioListeners = new Set()
 function log(session, dir, msg, extra = {}) {
   const entry = { op: 'msg', ts: Date.now(), session, dir, msg, ...extra }
+  // check every protocol message against its schema; the UI shows the verdict next to the message
+  if (dir !== 'sys' && !extra.raw && validator && ['request', 'response', 'event'].includes(msg?.type)) {
+    const r = validator.validate(msg, msg.type)
+    if (r.known) entry.schema = r.issues.length ? { ok: false, issues: r.issues } : { ok: true }
+  }
   broadcast(entry)
   scenarioListeners.forEach((fn) => fn(entry))
 }
@@ -159,7 +166,7 @@ async function connect({ name, url, token, env = 'local', refreshToken = null, e
   const prev = sessions.get(name)
   if (prev?.ws) prev.ws.close()
   const e = ENVS[env]
-  const s = { name, env, url: url || e?.url, token: token ?? '', refreshToken, expiresAt, tokenUser, issuedAt, ws: null, state: 'connecting', user: null }
+  const s = { name, env, url: url || e?.url, token: token ?? '', refreshToken, expiresAt, tokenUser, issuedAt, ws: null, state: 'connecting', user: prev?.user ?? null }
   sessions.set(name, s)
   persistSessions()
   emitSession(s)
@@ -242,6 +249,51 @@ export function send(name, { commandId, data, type = 'request', messageId }) {
   s.ws.send(JSON.stringify(msg))
   log(name, 'out', msg)
   return msg.messageId
+}
+
+// Send a text frame exactly as given (no envelope, no JSON check): for poking the server with broken input.
+export function sendRaw(name, text, { binary = false } = {}) {
+  const s = sessions.get(name)
+  if (!s?.ws || s.ws.readyState !== WebSocket.OPEN) throw new Error(`session "${name}" is not connected`)
+  s.ws.send(binary ? Buffer.from(String(text), 'utf8') : String(text), { binary })
+  log(name, 'out', { raw: String(text).length > 4000 ? `${String(text).slice(0, 4000)}… (${String(text).length} chars)` : String(text), binary }, { raw: true })
+}
+
+// 'close' = clean close frame, 'terminate' = the TCP connection just dies (like a crash or a lost network)
+function drop(name, mode = 'terminate') {
+  const s = sessions.get(name)
+  if (!s?.ws) throw new Error(`session "${name}" is not connected`)
+  sys(name, mode === 'close' ? 'closing the connection cleanly (test)' : 'killing the connection without a close frame (test)')
+  if (mode === 'close') s.ws.close(1000, 'test')
+  else s.ws.terminate()
+}
+
+async function reconnect(name, ms = 20000) {
+  const prev = sessions.get(name)
+  if (!prev) throw new Error(`unknown session ${name}`)
+  await connect({ name: prev.name, env: prev.env, url: prev.url, token: prev.token, refreshToken: prev.refreshToken, expiresAt: prev.expiresAt, tokenUser: prev.tokenUser, issuedAt: prev.issuedAt })
+  const end = Date.now() + ms
+  while (Date.now() < end) {
+    const st = sessions.get(name)?.state
+    if (st === 'open') return
+    if (st === 'closed') throw new Error(`${name} could not reconnect`)
+    await new Promise((r) => setTimeout(r, 50))
+  }
+  throw new Error(`timeout (${ms} ms) waiting for ${name} to reconnect`)
+}
+
+// Open a throw-away socket with a wrong credential and report how the server rejects it.
+function probeAuth(name, mode) {
+  const s = sessions.get(name)
+  const url = s?.url ?? ENVS.local.url
+  const headers = mode === 'missing' ? {} : { Authorization: `Bearer ${mode === 'garbage' ? 'x'.repeat(40) : 'invalid-token'}` }
+  return new Promise((resolve) => {
+    const ws = new WebSocket(url, ['v0.tachyon'], { headers })
+    const done = (text, ok) => { sys(name, `auth probe (${mode} token): ${text}`, false); resolve({ ok, text }); try { ws.terminate() } catch { /* gone */ } }
+    ws.on('open', () => done('the server ACCEPTED the connection (it should have refused it)', false))
+    ws.on('unexpected-response', (_r, res) => done(`HTTP ${res.statusCode} ${res.statusMessage}`, res.statusCode === 401 || res.statusCode === 403))
+    ws.on('error', (err) => done(`error: ${err.message}`, false))
+  })
 }
 
 // ---- creating sessions the easy way ----------------------------------------------
@@ -364,6 +416,37 @@ async function loginDev(name) {
   }
 }
 
+// ---- running scenarios (one at a time, so players are not driven by two flows at once) ----
+let batchRunning = false
+async function runBatch(list, { schema, roles, stopOnFail, repeat }, isBatch) {
+  batchRunning = true
+  const results = []
+  const started = Date.now()
+  if (isBatch) broadcast({ op: 'scenarioBatch', status: 'start', total: list.length * repeat })
+  try {
+    outer: for (let round = 1; round <= repeat; round++) {
+      for (const sc of list) {
+        let failMsg
+        const t0 = Date.now()
+        const ok = await runScenario(sc, {
+          sessions, send, sendRaw, drop, reconnect, validate: (msg, kind) => validator.validate(msg, kind),
+          onLog: (e) => {
+            if (e.status === 'failed' || (e.status === 'aborted' && e.detail)) failMsg = e.detail
+            broadcast({ op: 'scenarioLog', round, ...e })
+          },
+          listen: (fn) => (scenarioListeners.add(fn), () => scenarioListeners.delete(fn))
+        }, { schema, roles: roles?.[sc.id] })
+        results.push({ id: sc.id, name: sc.name, round, ok, ms: Date.now() - t0, detail: ok ? undefined : failMsg })
+        if (isBatch) broadcast({ op: 'scenarioBatch', status: 'progress', done: results.length, total: list.length * repeat, last: results.at(-1) })
+        if (!ok && stopOnFail) break outer
+      }
+    }
+  } finally {
+    batchRunning = false
+    if (isBatch) broadcast({ op: 'scenarioBatch', status: 'done', results, ms: Date.now() - started, passed: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length })
+  }
+}
+
 // ---- HTTP + UI websocket ---------------------------------------------------------
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' }
@@ -423,7 +506,7 @@ wss.on('connection', (ui) => {
         case 'localUsers': reply({ op: 'localUsers', users: await listLocalUsers() }); break
         case 'loginDev': await loginDev(m.name); break
         case 'send':
-          // `${bob.id}` style placeholders are resolved from the connected sessions
+          // `${player2.id}` style placeholders are resolved from the connected sessions
           send(m.name, { commandId: m.commandId, messageId: m.messageId, data: m.data === undefined ? undefined : subst(m.data, sessions) })
           break
 
@@ -434,15 +517,26 @@ wss.on('connection', (ui) => {
           break
 
         case 'settingsCheck': {
-          const checks = { teiserver: checkTeiserver(m.teiserverDir), tachyon: checkTachyon(m.tachyonDir) }
-          const commands = checks.tachyon.ok ? buildCatalog(path.join(path.resolve(expandHome(m.tachyonDir)), 'schema')).commands.length : null
-          reply({ op: 'settingsChecked', checks, commands })
+          const checks = { teiserver: checkTeiserver(m.teiserverDir), tachyon: checkTachyon(m.tachyonDir, DATA) }
+          const commands = checks.tachyon.ok ? buildCatalog(path.join(resolveRepoDir(DATA, m.tachyonDir), 'schema')).commands.length : null
+          reply({ op: 'settingsChecked', checks, commands, isUrl: isGitUrl(m.tachyonDir) })
           break
         }
+        case 'tachyonFetch':
+          try {
+            await fetchRepo(DATA, m.tachyonDir)
+            reply({ op: 'tachyonFetched' })
+          } catch (err) {
+            reply({ op: 'tachyonFetched', error: err.message })
+          }
+          break
         case 'detectPaths': reply({ op: 'detected', found: detect(ROOT) }); break
         case 'settingsSave': {
-          const { setupDone, teiserverDir, tachyonDir, localUrl, devUrl, clientId, autostart } = m.settings
-          settings.save({ setupDone, teiserverDir, tachyonDir, localUrl, devUrl, clientId, autostart })
+          const { setupDone, teiserverDir, tachyonDir, localUrl, devUrl, clientId, autostart, devOnly } = m.settings
+          settings.save({ setupDone, teiserverDir, tachyonDir, localUrl, devUrl, clientId, autostart, devOnly: !!devOnly })
+          if (isGitUrl(tachyonDir) && !checkTachyon(tachyonDir, DATA).ok) {
+            try { await fetchRepo(DATA, tachyonDir) } catch (err) { toast('error', `Could not fetch the Tachyon repo: ${err.message}`) }
+          }
           applySettings()
           pingDev()
           const p = JSON.stringify(initPayload())
@@ -457,34 +551,50 @@ wss.on('connection', (ui) => {
           await local.stop({ force: !!m.force }).catch((err) => toast('error', err.message))
           break
 
-        case 'runScenario': {
-          const sc = allScenarios().find((x) => x.id === m.id)
-          if (!sc) throw new Error('unknown scenario')
-          runScenario(sc, {
-            sessions, send, connect,
-            onLog: (e) => broadcast({ op: 'scenarioLog', ...e }),
-            listen: (fn) => (scenarioListeners.add(fn), () => scenarioListeners.delete(fn))
-          })
+        case 'runScenario':
+        case 'runScenarios': {
+          if (batchRunning) throw new Error('a scenario run is already in progress')
+          const wanted = m.op === 'runScenario' ? [m.id] : m.ids
+          const list = allScenarios().filter((x) => (wanted ? wanted.includes(x.id) : !x.broken))
+          if (!list.length) throw new Error('no scenarios to run')
+          runBatch(list, { schema: m.schema, roles: m.roles ?? {}, stopOnFail: !!m.stopOnFail, repeat: Math.min(Math.max(Number(m.repeat) || 1, 1), 100) }, m.op === 'runScenarios')
+            .catch((err) => toast('error', `scenario run failed: ${err.message}`))
           break
         }
+        case 'validate': {
+          reply({ op: 'validated', ...validator.validateRequestData(m.commandId, m.data) })
+          break
+        }
+        case 'sendRaw': sendRaw(m.name, m.text, { binary: !!m.binary }); break
+        case 'drop': drop(m.name, m.mode); break
+        case 'reconnect': reconnect(m.name).catch((err) => toast('error', err.message)); break
+        case 'probeAuth': reply({ op: 'probed', ...(await probeAuth(m.name, m.mode ?? 'invalid')) }); break
         case 'scenarioSave': {
           const sc = m.scenario
           if (!sc?.name || !Array.isArray(sc.steps)) throw new Error('a scenario needs a name and a list of steps')
-          const clean = { name: String(sc.name), category: sc.category || 'Custom', description: sc.description ?? '', sessions: sc.sessions ?? [], steps: sc.steps }
-          // editing a custom scenario overwrites its file; anything else (new, imported, builtin copy) gets a fresh one
-          let file = m.id?.startsWith('user:') ? m.id.slice(5) : null
+          const clean = { name: String(sc.name), category: sc.category || 'Custom', description: sc.description ?? '', ...(/^https?:\/\//.test(sc.issue ?? '') ? { issue: String(sc.issue).trim() } : {}), sessions: sc.sessions ?? [], steps: sc.steps }
+          // Where it lives: 'project' = scenarios/ in this repo (plain files you can commit and share),
+          // 'local' = data/scenarios/ (private to this machine, git-ignored).
+          const dirOf = { builtin: BUILTIN_SCENARIOS, user: USER_SCENARIOS }
+          const target = m.target === 'local' ? 'user' : 'builtin'
+          const [oldSource, oldFile] = m.id?.includes(':') ? [m.id.split(':')[0], path.basename(m.id.slice(m.id.indexOf(':') + 1))] : [null, null]
+          // editing in place overwrites the file; a new or moved scenario gets a fresh file name
+          let file = oldSource === target && oldFile ? oldFile : null
           if (!file) {
             const base = slug(clean.name)
             file = `${base}.json`
-            for (let n = 2; fs.existsSync(path.join(USER_SCENARIOS, file)); n++) file = `${base}-${n}.json`
+            for (let n = 2; fs.existsSync(path.join(dirOf[target], file)); n++) file = `${base}-${n}.json`
           }
-          fs.writeFileSync(path.join(USER_SCENARIOS, file), JSON.stringify(clean, null, 2))
-          broadcast({ op: 'scenarios', list: allScenarios(), saved: `user:${file}` })
+          fs.writeFileSync(path.join(dirOf[target], file), JSON.stringify(clean, null, 2) + '\n')
+          if (oldFile && oldSource && oldSource !== target && dirOf[oldSource]) fs.rmSync(path.join(dirOf[oldSource], oldFile), { force: true }) // moved
+          broadcast({ op: 'scenarios', list: allScenarios(), saved: `${target}:${file}` })
           break
         }
         case 'scenarioDelete': {
-          if (!m.id?.startsWith('user:')) throw new Error('only your own scenarios can be deleted')
-          fs.rmSync(path.join(USER_SCENARIOS, path.basename(m.id.slice(5))), { force: true })
+          const [src, ...rest] = String(m.id ?? '').split(':')
+          const dir = { builtin: BUILTIN_SCENARIOS, user: USER_SCENARIOS }[src]
+          if (!dir) throw new Error('unknown scenario')
+          fs.rmSync(path.join(dir, path.basename(rest.join(':'))), { force: true })
           broadcast({ op: 'scenarios', list: allScenarios() })
           break
         }
@@ -499,7 +609,7 @@ wss.on('connection', (ui) => {
 applySettings()
 loadSavedSessions()
 pingDev()
-setInterval(() => local.refresh(), 5000).unref()
+setInterval(() => { if (!settings.get().devOnly) local.refresh() }, 5000).unref()
 setInterval(pingDev, 30_000).unref()
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`TachyonDebug on http://localhost:${PORT}`)

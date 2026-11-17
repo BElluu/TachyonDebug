@@ -3,6 +3,10 @@ import { $, el, state, bus, api, store } from './core.js'
 import { confirmDialog } from './modal.js'
 
 function render() {
+  // dev-only setups have no local server to show, control or read logs from
+  const devOnly = !!state.settings.devOnly
+  $('#lDot').closest('.srv').classList.toggle('hidden', devOnly)
+  if (devOnly) $('#logDrawer').classList.add('hidden')
   const { status: st, managed } = state.local
   const label = { up: managed ? 'running · started by TachyonDebug' : 'running · started outside TachyonDebug', down: 'not running', starting: 'starting…', stopping: 'stopping…', unknown: 'checking…' }[st]
   $('#lDot').className = `dot ${st}`

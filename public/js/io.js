@@ -26,7 +26,7 @@ export const exportRequest = (req, collName) => download(`${slug(req.name)}.requ
 export const exportCollections = (cols, name) =>
   download(`${slug(name)}.collection.json`, wrap('collections', { collections: cols.map((c) => ({ name: c.name, requests: c.requests.map(cleanRequest) })) }))
 export const exportScenario = (sc) =>
-  download(`${slug(sc.name)}.scenario.json`, wrap('scenarios', { scenarios: [{ name: sc.name, category: sc.category, description: sc.description, sessions: sc.sessions, steps: sc.steps }] }))
+  download(`${slug(sc.name)}.scenario.json`, wrap('scenarios', { scenarios: [{ name: sc.name, category: sc.category, description: sc.description, ...(sc.issue ? { issue: sc.issue } : {}), sessions: sc.sessions, steps: sc.steps }] }))
 
 export function pickJsonFile() {
   return new Promise((resolve) => {
@@ -56,7 +56,7 @@ function normRequest(r) {
 
 function normScenario(s) {
   if (!isObj(s) || typeof s.name !== 'string' || !Array.isArray(s.steps)) throw new Error('a scenario needs a name and a list of steps')
-  return { name: s.name, category: s.category || 'Custom', description: s.description ?? '', sessions: Array.isArray(s.sessions) ? s.sessions : [], steps: s.steps }
+  return { name: s.name, category: s.category || 'Custom', description: s.description ?? '', ...(typeof s.issue === 'string' && s.issue ? { issue: s.issue } : {}), sessions: Array.isArray(s.sessions) ? s.sessions : [], steps: s.steps }
 }
 
 // Turns any supported file into { collections, scenarios } (fresh ids), or throws a readable error.

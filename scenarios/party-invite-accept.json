@@ -1,34 +1,34 @@
 {
   "name": "Create a party, invite and accept",
   "category": "Party",
-  "description": "alice creates a party, invites bob, bob accepts. Both sides must be told.  Based on: party_test.exs (invite lifecycle: works, accept invite works).  Note: can fail with a timeout on party/updated when this player was in an earlier party (see the regression scenario for the server bug).",
+  "description": "player1 creates a party, invites player2, player2 accepts. Both sides must be told.  Based on: party_test.exs (invite lifecycle: works, accept invite works).  Note: can fail with a timeout on party/updated when this player was in an earlier party (see the regression scenario for the server bug).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,9 +40,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -51,20 +51,20 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite",
+      "title": "player2 receives the invite",
       "expect": {
         "data": {
           "party": {
@@ -74,17 +74,17 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "party/updated",
-      "title": "alice is told about the pending invite"
+      "title": "player1 is told about the pending invite"
     },
     {
       "drain": "all"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
-      "title": "bob accepts",
+      "title": "player2 accepts",
       "data": {
         "partyId": "${party.id}"
       },
@@ -93,25 +93,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "party/updated",
-      "title": "alice sees bob join"
+      "title": "player1 sees player2 join"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/updated",
-      "title": "bob gets the party state"
+      "title": "player2 gets the party state"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Cleanup: bob leaves the party",
+      "title": "Cleanup: player2 leaves the party",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

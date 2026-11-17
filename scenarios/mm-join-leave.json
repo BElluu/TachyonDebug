@@ -3,17 +3,17 @@
   "category": "Matchmaking",
   "description": "A solo player joins a queue, cannot join twice, then leaves; leaving again fails with not_queued.  Based on: matchmaking_test.exs (joining queues, leaving queues).",
   "sessions": [
-    "alice"
+    "player1"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
       "title": "Reset: leave any queue",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/list",
       "title": "Find a 1v1 queue (teamSize 1)",
       "expect": {
@@ -24,9 +24,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
-      "title": "alice joins the queue",
+      "title": "player1 joins the queue",
       "data": {
         "queues": [
           {
@@ -40,7 +40,7 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
       "title": "joining twice is rejected",
       "data": {
@@ -57,15 +57,15 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "alice leaves the queue",
+      "title": "player1 leaves the queue",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
       "title": "leaving twice is rejected",
       "expect": {

@@ -1,5 +1,5 @@
 // Sidebar: Postman-like collections tree + request history.
-import { $, el, state, bus, api, store, uid, groupOf, colorFor, icon } from './core.js'
+import { $, el, state, bus, api, store, uid, groupOf, colorFor, icon, initColResize } from './core.js'
 import { modal, confirmDialog, promptDialog, toast } from './modal.js'
 import { exportRequest, exportCollections, pickJsonFile, readDroppedFile, parseImport } from './io.js'
 import { openRequest, openDraft, runSaved } from './workbench.js'
@@ -71,6 +71,10 @@ export function initCollections() {
     state.collections.push({ id: uid(), name, requests: [] })
     persistCollections()
   }
+  initColResize($('#sbResize'), { varName: '--wb-side', key: 'sidebarWidth', def: 290 })
+  $('#fromProto').append(icon('refresh'))
+  $('#fromProto').onclick = () => syncFromProtocol({ force: true })
+  bus.on('init', () => syncFromProtocol())
   $('#newReq').onclick = () => openDraft({})
   $('#impBtn').onclick = async () => handleImport(await pickJsonFile())
   $('#expAll').onclick = () => state.collections.length ? exportCollections(state.collections, 'all-collections') : toast('Nothing to export yet', 'info')
@@ -86,6 +90,28 @@ export function initCollections() {
   for (const b of document.querySelectorAll('#sbTabs button')) {
     b.onclick = () => { view = b.dataset.view; store.set('sidebarView', view); render() }
   }
+}
+
+// One collection per protocol group, one request (with a template body) per command.
+// Runs by itself whenever the protocol is loaded and adds commands it has not offered before, so requests you
+// deleted stay deleted. The refresh button (force) also brings those back.
+function syncFromProtocol({ force = false } = {}) {
+  if (!state.catalog.length) return force ? toast('No protocol loaded. Check Settings → Locations.', 'error') : undefined
+  const seen = new Set(store.get('offeredCommands', []))
+  const have = new Set(state.collections.flatMap((c) => c.requests.map((r) => r.commandId)))
+  const nice = (n) => { const w = n.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase(); return w[0].toUpperCase() + w.slice(1) }
+  let added = 0
+  for (const c of state.catalog) {
+    if (have.has(c.id) || (!force && seen.has(c.id))) continue
+    const title = c.group[0].toUpperCase() + c.group.slice(1)
+    let coll = state.collections.find((x) => x.name.toLowerCase() === c.group)
+    if (!coll) state.collections.push((coll = { id: uid(), name: title, requests: [] }))
+    coll.requests.push({ id: uid(), name: nice(c.name), as: null, commandId: c.id, data: c.kinds.request.template })
+    added++
+  }
+  store.set('offeredCommands', state.catalog.map((c) => c.id))
+  if (added) persistCollections()
+  if (force) toast(added ? `Added ${added} request${added > 1 ? 's' : ''} from the protocol` : `All ${state.catalog.length} protocol commands are already in your collections`, added ? 'ok' : 'info')
 }
 
 function badge(commandId) {
@@ -136,7 +162,7 @@ function render() {
 
 function requestRow(r, coll) {
   const gone = r.as && !state.sessions.has(r.as)
-  return el('div', { class: 'req-row', draggable: true, title: JSON.stringify(r.data ?? null),
+  return el('div', { class: 'req-row', draggable: true, title: `${r.name}\n${r.commandId}${r.as ? ' · as ' + r.as : ''}\n\n${JSON.stringify(r.data ?? null)}`,
     ondragstart: (e) => e.dataTransfer.setData('text/plain', r.id),
     onclick: () => openRequest(r.id) },
     badge(r.commandId),

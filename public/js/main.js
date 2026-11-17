@@ -7,6 +7,7 @@ import { initTimeline } from './timeline.js'
 import { initScenarios } from './scenarios.js'
 import { initSettings, openWizard, isWizardOpen } from './settings.js'
 import { initFooter } from './footer.js'
+import { initPlayerState } from './playerstate.js'
 
 // ---- top navigation -----------------------------------------------------------------
 function showView(name) {
@@ -49,6 +50,6 @@ function handle(m) {
   }
 }
 
-initSessions(); initCollections(); initWorkbench(); initTimeline(); initScenarios(); initSettings(); initFooter()
+initSessions(); initCollections(); initWorkbench(); initTimeline(); initScenarios(); initPlayerState(); initSettings(); initFooter()
 showView(store.get('view', 'workbench'))
 connectHelper(handle)

@@ -1,34 +1,34 @@
 {
   "name": "Two players get matched",
   "category": "Matchmaking",
-  "description": "alice and bob join the same 1v1 queue; the queue ticks (every 5s by default) and both get matchmaking/found.  Based on: matchmaking_test.exs (pairing: get found events).",
+  "description": "player1 and player2 join the same 1v1 queue; the queue ticks (every 5s by default) and both get matchmaking/found.  Based on: matchmaking_test.exs (pairing: get found events).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,7 +40,7 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/list",
       "title": "Find a 1v1 queue (teamSize 1)",
       "expect": {
@@ -51,9 +51,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
-      "title": "alice joins",
+      "title": "player1 joins",
       "data": {
         "queues": [
           {
@@ -67,9 +67,9 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/queue",
-      "title": "bob joins",
+      "title": "player2 joins",
       "data": {
         "queues": [
           {
@@ -83,27 +83,27 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "matchmaking/found",
-      "title": "alice is matched",
+      "title": "player1 is matched",
       "timeout": 20000
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "matchmaking/found",
-      "title": "bob is matched",
+      "title": "player2 is matched",
       "timeout": 20000
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Cleanup: alice leaves",
+      "title": "Cleanup: player1 leaves",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Cleanup: bob leaves",
+      "title": "Cleanup: player2 leaves",
       "optional": true
     }
   ]

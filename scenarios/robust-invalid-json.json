@@ -1,0 +1,77 @@
+{
+  "name": "Server survives broken JSON",
+  "category": "Robustness",
+  "description": "player1 sends frames that are not valid JSON (truncated, empty, an array). The server may answer with an error or close the connection, but it must stay up and serve the next request.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "player1",
+      "raw": "{\"type\": \"request\", \"messageId\": ",
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "Truncated JSON (any reply is fine)"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "Still alive after truncated JSON",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "player1",
+      "raw": "",
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "Empty text frame"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "Still alive after an empty frame",
+      "expect": {
+        "status": "success"
+      }
+    },
+    {
+      "as": "player1",
+      "raw": "[1, 2, 3]",
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "JSON that is not an object"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "Still alive after a JSON array",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

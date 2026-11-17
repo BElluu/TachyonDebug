@@ -1,44 +1,44 @@
 {
   "name": "Friend request: cancel",
   "category": "Friends",
-  "description": "alice withdraws her request before bob answers.  Based on: friend_test.exs (can cancel request).",
+  "description": "player1 withdraws her request before player2 answers.  Based on: friend_test.exs (can cancel request).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/remove",
-      "title": "Reset: alice unfriends bob",
+      "title": "Reset: player1 unfriends player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "friend/remove",
-      "title": "Reset: bob unfriends alice",
+      "title": "Reset: player2 unfriends player1",
       "data": {
-        "userId": "${alice.id}"
+        "userId": "${player1.id}"
       },
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/cancelRequest",
       "title": "Reset: cancel pending requests",
       "data": {
-        "to": "${bob.id}"
+        "to": "${player2.id}"
       },
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "friend/cancelRequest",
       "data": {
-        "to": "${alice.id}"
+        "to": "${player1.id}"
       },
       "optional": true
     },
@@ -49,36 +49,36 @@
       "drain": "all"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/sendRequest",
-      "title": "alice sends a request",
+      "title": "player1 sends a request",
       "data": {
-        "to": "${bob.id}"
+        "to": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "friend/requestReceived",
-      "title": "bob receives it"
+      "title": "player2 receives it"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/cancelRequest",
-      "title": "alice cancels",
+      "title": "player1 cancels",
       "data": {
-        "to": "${bob.id}"
+        "to": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "friend/requestCancelled",
-      "title": "bob is told"
+      "title": "player2 is told"
     }
   ]
 }

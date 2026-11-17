@@ -2,7 +2,9 @@
 import { $, el, state, bus, api, store, uid, groupOf, colorFor, prettyJson, debounce } from './core.js'
 import { toast } from './modal.js'
 import { findRequest, saveDialog } from './collections.js'
-import { highlightJson } from './timeline.js'
+import { highlightJson, issuesNode, schemaBadge } from './timeline.js'
+import { openRawDialog } from './robustness.js'
+import { renderState } from './playerstate.js'
 
 let tabs = store.get('tabs', []).map((t) => ({ ...t, msgId: null, response: null }))
 let activeId = store.get('activeTab', null)
@@ -96,6 +98,7 @@ function loadBuilder() {
   $('#bBody').value = t.body
   updateInfo()
   validateBody()
+  renderFields()
 }
 
 function updateInfo() {
@@ -115,9 +118,60 @@ function updateInfo() {
 function validateBody() {
   const v = $('#bValid')
   const text = $('#bBody').value.trim()
-  if (!text) { v.textContent = 'no body'; v.className = 'valid muted'; return true }
-  try { JSON.parse(text); v.textContent = '✓ valid JSON'; v.className = 'valid ok'; return true } catch (e) {
-    v.textContent = `✗ ${e.message}`; v.className = 'valid bad'; return false
+  if (!text) { v.textContent = 'no body'; v.className = 'valid muted'; checkSchema(); return true }
+  try { JSON.parse(text); v.textContent = '✓ valid JSON'; v.className = 'valid ok'; checkSchema(); return true } catch (e) {
+    v.textContent = `✗ ${e.message}`; v.className = 'valid bad'; clearSchema(); return false
+  }
+}
+
+// ---- schema help: validation of the body and a list of the command's fields -----------------
+let schemaSeq = 0
+function clearSchema(text = '') {
+  $('#bSchema').textContent = text; $('#bSchema').className = 'valid muted'
+  $('#bIssues').classList.add('hidden')
+}
+const checkSchema = debounce(async () => {
+  const t = active()
+  const seq = ++schemaSeq
+  if (!t?.commandId || !catalogEntry(t.commandId)) return clearSchema()
+  let data
+  const text = $('#bBody').value.trim()
+  try { data = text ? JSON.parse(text) : undefined } catch { return clearSchema() }
+  const r = await api.request({ op: 'validate', commandId: t.commandId, data }).catch(() => null)
+  if (!r || seq !== schemaSeq) return
+  const box = $('#bIssues')
+  if (!r.known) return clearSchema('no schema')
+  $('#bSchema').textContent = r.issues.length ? `⚠ ${r.issues.length} schema issue${r.issues.length > 1 ? 's' : ''}` : '✓ matches schema'
+  $('#bSchema').className = `valid ${r.issues.length ? 'warnc' : 'ok'}`
+  box.classList.toggle('hidden', !r.issues.length)
+  box.replaceChildren(...(r.issues.length ? [issuesNode(r.issues)] : []))
+}, 250)
+
+const placeholder = (f) => f.enum?.length ? f.enum[0] : /integer|number/.test(f.type) ? 0 : f.type === 'boolean' ? false : f.type === 'array' ? [] : f.type === 'object' ? {} : ''
+function currentBody() { try { const t = $('#bBody').value.trim(); return t ? JSON.parse(t) : {} } catch { return null } }
+function setBody(obj) {
+  $('#bBody').value = prettyJson(obj)
+  const t = active(); if (t) { t.body = $('#bBody').value; touch() }
+  validateBody()
+}
+function renderFields() {
+  const box = $('#bFieldList')
+  const t = active()
+  const c = t?.commandId && catalogEntry(t.commandId)
+  const fields = c?.kinds.request.fields
+  box.replaceChildren()
+  if (!fields) return void box.append(el('div', { class: 'muted' }, c ? 'This command takes no data.' : 'Pick a command from the protocol to see its fields.'))
+  if (!fields.length) return void box.append(el('div', { class: 'muted' }, 'This command takes no data.'))
+  for (const f of fields) {
+    box.append(el('div', { class: 'fld', title: 'click to add it to the body', onclick: () => {
+      const cur = currentBody()
+      if (!cur || typeof cur !== 'object' || Array.isArray(cur)) return toast('The body is not a JSON object', 'error')
+      if (!(f.name in cur)) { cur[f.name] = placeholder(f); setBody(cur) }
+    } },
+    el('code', {}, f.name), el('span', { class: 'fld-type' }, f.format ? `${f.type} (${f.format})` : f.type),
+    f.required ? el('span', { class: 'badge failed' }, 'required') : el('span', { class: 'badge' }, 'optional'),
+    f.enum ? el('span', { class: 'muted mono' }, f.enum.map((x) => JSON.stringify(x)).join(' | ')) : null,
+    f.description ? el('span', { class: 'muted' }, f.description) : null))
   }
 }
 
@@ -139,7 +193,7 @@ function setCommand(id, { fromList = false } = {}) {
     t.body = templateFor(id)
     $('#bBody').value = t.body
   }
-  touch(); updateInfo(); validateBody()
+  touch(); updateInfo(); validateBody(); renderFields()
 }
 
 // command picker (a combobox that also accepts free text)
@@ -163,7 +217,7 @@ function initCombo() {
   const pick = (id) => { list.classList.add('hidden'); setCommand(id, { fromList: true }); $('#bBody').focus() }
   input.addEventListener('focus', () => { sel = -1; draw() })
   input.addEventListener('blur', () => list.classList.add('hidden'))
-  input.addEventListener('input', () => { sel = -1; draw(); const t = active(); if (t) { t.commandId = input.value.trim(); touch(); updateInfo() } })
+  input.addEventListener('input', () => { sel = -1; draw(); const t = active(); if (t) { t.commandId = input.value.trim(); touch(); updateInfo(); renderFields(); checkSchema() } })
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, shown.length - 1); draw(); e.preventDefault() }
     else if (e.key === 'ArrowUp') { sel = Math.max(sel - 1, 0); draw(); e.preventDefault() }
@@ -201,7 +255,7 @@ function onIncoming(m) {
   if (m.dir !== 'in' || m.msg?.type !== 'response') return
   const t = tabs.find((x) => x.msgId === m.msg.messageId)
   if (!t) return
-  t.response = { msg: m.msg, ms: Math.round(performance.now() - t.sentAt) }
+  t.response = { msg: m.msg, ms: Math.round(performance.now() - t.sentAt), schema: m.schema }
   if (t.id === activeId) renderResponse()
 }
 
@@ -214,15 +268,17 @@ function renderResponse() {
     // errors such as "session not connected" arrive as toasts; otherwise we are simply waiting
     return void box.append(el('div', { class: 'empty' }, el('span', { class: 'spinner' }), ' waiting for the response…'))
   }
-  const { msg, ms } = t.response
+  const { msg, ms, schema } = t.response
   box.append(
     el('div', { class: 'resp-head' },
       el('span', { class: `badge big ${msg.status}` }, msg.status ?? '—'),
       msg.reason ? el('span', { class: 'badge failed big' }, msg.reason) : null,
       msg.details ? el('span', { class: 'muted' }, msg.details) : null,
+      schemaBadge(schema),
       el('span', { class: 'spacer' }),
       el('span', { class: 'muted' }, `${ms} ms`),
       el('button', { onclick: () => navigator.clipboard?.writeText(prettyJson(msg)) }, 'Copy')),
+    schema?.ok === false ? issuesNode(schema.issues, 'The response does not match the protocol schema') : null,
     el('pre', { class: 'json' }, highlightJson(prettyJson(msg))))
 }
 
@@ -232,6 +288,8 @@ function setBottom(which) {
   for (const b of document.querySelectorAll('#bottomTabs button')) b.classList.toggle('active', b.dataset.pane === which)
   $('#response').classList.toggle('hidden', which !== 'response')
   $('#timeline').classList.toggle('hidden', which !== 'timeline')
+  $('#stateView').classList.toggle('hidden', which !== 'state')
+  if (which === 'state') renderState()
   if (which === 'timeline') { const log = $('#log'); log.scrollTop = log.scrollHeight }
 }
 
@@ -252,11 +310,49 @@ async function saveTab() {
   toast(`Saved “${req.name}”`, 'ok', 2500)
 }
 
+// drag the splitter under the body editor: the body gets taller, the response/timeline shorter
+function initSplitter() {
+  const bar = $('#splitter')
+  const area = $('#bBody')
+  const apply = (h) => {
+    const max = Math.max(80, $('.main').clientHeight - 260)
+    document.documentElement.style.setProperty('--body-h', `${Math.round(Math.min(Math.max(h, 60), max))}px`)
+  }
+  apply(store.get('bodyHeight', 160))
+  bar.addEventListener('pointerdown', (e) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = area.getBoundingClientRect().height
+    const move = (ev) => apply(startH + ev.clientY - startY)
+    const up = () => {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up)
+      document.body.classList.remove('resizing'); bar.classList.remove('drag')
+      store.set('bodyHeight', parseInt(document.documentElement.style.getPropertyValue('--body-h'), 10))
+    }
+    document.body.classList.add('resizing'); bar.classList.add('drag')
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up)
+  })
+  bar.addEventListener('dblclick', () => { apply(160); store.set('bodyHeight', 160) })
+}
+
 export function initWorkbench() {
+  initSplitter()
   initCombo()
   $('#bSend').onclick = send
   $('#bSave').onclick = saveTab
   $('#bBody').addEventListener('input', () => { const t = active(); if (t) { t.body = $('#bBody').value; touch(); validateBody() } })
+  $('#bFields').onclick = () => { $('#bFieldList').classList.toggle('hidden'); renderFields() }
+  $('#bFill').onclick = () => {
+    const t = active(); const c = t?.commandId && catalogEntry(t.commandId)
+    if (!c?.kinds.request.fullTemplate && c?.kinds.request.fullTemplate !== null) return toast('This command has no schema to fill from', 'info')
+    const cur = currentBody()
+    if (cur === null) return toast('Fix the JSON first', 'error')
+    const merge = (tpl, have) => (tpl && typeof tpl === 'object' && !Array.isArray(tpl) && have && typeof have === 'object' && !Array.isArray(have)
+      ? { ...Object.fromEntries(Object.entries(tpl).map(([k, v]) => [k, k in have ? merge(v, have[k]) : v])), ...Object.fromEntries(Object.entries(have).filter(([k]) => !(k in tpl))) }
+      : have === undefined ? tpl : have)
+    setBody(merge(c.kinds.request.fullTemplate, cur))
+  }
+  $('#bRaw').onclick = () => openRawDialog({ as: $('#bSession').value })
   $('#bFormat').onclick = () => {
     try { $('#bBody').value = prettyJson(JSON.parse($('#bBody').value)); const t = active(); t.body = $('#bBody').value; touch(); validateBody() } catch (e) { toast(e.message, 'error') }
   }

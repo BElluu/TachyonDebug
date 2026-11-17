@@ -1,44 +1,44 @@
 {
   "name": "Friend request: reject",
   "category": "Friends",
-  "description": "bob rejects alice's request.  Based on: friend_test.exs (reject request).",
+  "description": "player2 rejects player1's request.  Based on: friend_test.exs (reject request).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/remove",
-      "title": "Reset: alice unfriends bob",
+      "title": "Reset: player1 unfriends player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "friend/remove",
-      "title": "Reset: bob unfriends alice",
+      "title": "Reset: player2 unfriends player1",
       "data": {
-        "userId": "${alice.id}"
+        "userId": "${player1.id}"
       },
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/cancelRequest",
       "title": "Reset: cancel pending requests",
       "data": {
-        "to": "${bob.id}"
+        "to": "${player2.id}"
       },
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "friend/cancelRequest",
       "data": {
-        "to": "${alice.id}"
+        "to": "${player1.id}"
       },
       "optional": true
     },
@@ -49,36 +49,36 @@
       "drain": "all"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "friend/sendRequest",
-      "title": "alice sends a request",
+      "title": "player1 sends a request",
       "data": {
-        "to": "${bob.id}"
+        "to": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "friend/requestReceived",
-      "title": "bob receives it"
+      "title": "player2 receives it"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "friend/rejectRequest",
-      "title": "bob rejects",
+      "title": "player2 rejects",
       "data": {
-        "from": "${alice.id}"
+        "from": "${player1.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "friend/requestRejected",
-      "title": "alice is told"
+      "title": "player1 is told"
     }
   ]
 }

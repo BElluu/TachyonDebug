@@ -1,25 +1,25 @@
 {
   "name": "User info",
   "category": "User",
-  "description": "alice asks for bob's public info; an unknown id fails with unknown_user.  Based on: user_test.exs (info).",
+  "description": "player1 asks for player2's public info; an unknown id fails with unknown_user.  Based on: user_test.exs (info).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "user/info",
-      "title": "info about bob",
+      "title": "info about player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "user/info",
       "title": "info about an unknown user",
       "data": {

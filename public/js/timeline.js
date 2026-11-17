@@ -22,7 +22,18 @@ export function highlightJson(text) {
   return frag
 }
 
+// ---- schema verdicts -------------------------------------------------------------------
+export function issuesNode(issues, title) {
+  return el('div', { class: 'issue-box' },
+    title ? el('div', { class: 'issue-title' }, title) : null,
+    ...issues.map((i) => el('div', { class: 'issue' }, el('code', {}, i.path), ' ', i.message)))
+}
+export const schemaBadge = (schema) => (!schema ? null
+  : schema.ok ? el('span', { class: 'badge schema-ok', title: 'matches the protocol schema' }, '✓ schema')
+  : el('span', { class: 'badge schema-bad', title: schema.issues.map((i) => `${i.path} ${i.message}`).join('\n') }, `⚠ schema (${schema.issues.length})`))
+
 const visible = (m) => {
+  if ($('#fBad')?.checked && m.schema?.ok !== false) return false
   if (hidden.has(m.session)) return false
   if (m.dir === 'sys' && !$('#fSys').checked) return false
   const q = $('#fText').value.trim().toLowerCase()
@@ -38,17 +49,20 @@ export function entryNode(m) {
   const cmd = msg.commandId ?? state.requestsById.get(msg.messageId) ?? '(raw)'
   const status = msg.type === 'response' ? msg.status : null
   const reason = msg.reason ? `${msg.reason}${msg.details ? ' · ' + msg.details : ''}` : ''
-  const body = el('pre', { class: 'json' }, highlightJson(prettyJson(msg)))
+  const body = el('pre', { class: 'json' }, m.raw ? msg.raw : highlightJson(prettyJson(msg)))
   const isReq = m.dir === 'out' && msg.type === 'request'
   return el('details', { class: `entry ${m.dir}` },
     el('summary', {},
       el('span', { class: 'time' }, hhmmss(m.ts)), who,
       el('span', { class: 'arrow' }, m.dir === 'in' ? '◀' : '▶'),
       el('span', { class: 'cmd' }, cmd),
-      el('span', { class: 'badge' }, msg.type ?? '?'),
+      el('span', { class: 'badge' }, msg.type ?? (m.raw ? 'raw' : '?')),
       status ? el('span', { class: `badge ${status}` }, status) : null,
       reason ? el('span', { class: 'badge failed' }, reason) : null,
-      msg.data !== undefined ? el('span', { class: 'brief' }, JSON.stringify(msg.data)) : null),
+      schemaBadge(m.schema),
+      msg.data !== undefined ? el('span', { class: 'brief' }, JSON.stringify(msg.data)) : null,
+      m.raw ? el('span', { class: 'brief' }, msg.raw) : null),
+    m.schema?.ok === false ? issuesNode(m.schema.issues, 'Does not match the protocol schema') : null,
     body,
     el('div', { class: 'actions' },
       el('button', { onclick: () => navigator.clipboard?.writeText(prettyJson(msg)) }, 'Copy'),
@@ -118,6 +132,7 @@ export function initTimeline() {
   bus.on('init', renderTimeline)
   $('#fText').oninput = renderTimeline
   $('#fSys').onchange = renderTimeline
+  $('#fBad').onchange = renderTimeline
   $('#fCols').onchange = renderTimeline
   $('#fClear').onclick = () => { state.entries = []; renderTimeline(); jumpToLatest() }
   $('#jump').onclick = jumpToLatest

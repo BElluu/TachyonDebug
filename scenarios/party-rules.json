@@ -3,32 +3,32 @@
   "category": "Party",
   "description": "Every call below must fail with invalid_request, as the server's tests expect.  Based on: party_test.exs (create, leave, invite lifecycle, kick player).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,7 +40,7 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
       "title": "leaving without a party",
       "expect": {
@@ -49,11 +49,11 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
       "title": "inviting without a party",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "failed",
@@ -61,11 +61,11 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/kickMember",
       "title": "kicking without a party",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "failed",
@@ -73,15 +73,15 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
       "title": "cannot create a second party",
       "expect": {
@@ -90,22 +90,22 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
       "title": "cannot invite twice",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "failed",
@@ -113,11 +113,11 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/kickMember",
       "title": "an invited player is not a valid kick target",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "failed",
@@ -125,7 +125,7 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
       "title": "accepting an unknown party",
       "data": {
@@ -137,9 +137,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

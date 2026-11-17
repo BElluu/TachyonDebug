@@ -1,34 +1,34 @@
 {
   "name": "A party queues together",
   "category": "Matchmaking",
-  "description": "alice and bob form a party. When alice queues, bob is queued too; when alice cancels, bob is told.  Based on: party_matchmaking_test.exs (all members join matchmaking, one member leaving matchmaking).",
+  "description": "player1 and player2 form a party. When player1 queues, player2 is queued too; when player1 cancels, player2 is told.  Based on: party_matchmaking_test.exs (all members join matchmaking, one member leaving matchmaking).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "Reset: alice leaves matchmaking",
+      "title": "Reset: player1 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "matchmaking/cancel",
-      "title": "Reset: bob leaves matchmaking",
+      "title": "Reset: player2 leaves matchmaking",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -40,7 +40,7 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/list",
       "title": "Find a 2v2 queue (teamSize 2)",
       "expect": {
@@ -51,9 +51,9 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "alice creates a party",
+      "title": "player1 creates a party",
       "expect": {
         "status": "success"
       },
@@ -62,25 +62,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "alice invites bob",
+      "title": "player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "bob receives the invite"
+      "title": "player2 receives the invite"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/acceptInvite",
-      "title": "bob accepts",
+      "title": "player2 accepts",
       "data": {
         "partyId": "${party.id}"
       },
@@ -92,9 +92,9 @@
       "drain": "all"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/queue",
-      "title": "alice queues the party",
+      "title": "player1 queues the party",
       "data": {
         "queues": [
           {
@@ -108,33 +108,33 @@
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "matchmaking/queuesJoined",
-      "title": "bob is told the party joined"
+      "title": "player2 is told the party joined"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "matchmaking/cancel",
-      "title": "alice cancels",
+      "title": "player1 cancels",
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "matchmaking/cancelled",
-      "title": "bob is told it was cancelled"
+      "title": "player2 is told it was cancelled"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Cleanup: bob leaves the party",
+      "title": "Cleanup: player2 leaves the party",
       "optional": true
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves the party",
+      "title": "Cleanup: player1 leaves the party",
       "optional": true
     }
   ]

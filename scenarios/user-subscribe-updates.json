@@ -3,17 +3,17 @@
   "category": "User",
   "description": "Subscribing answers with the current state in a user/updated event.  Based on: user_test.exs (updates: for online user).",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "user/subscribeUpdates",
-      "title": "alice subscribes to bob",
+      "title": "player1 subscribes to player2",
       "data": {
         "userIds": [
-          "${bob.id}"
+          "${player2.id}"
         ]
       },
       "expect": {
@@ -21,26 +21,26 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "user/updated",
-      "title": "alice gets bob's full state",
+      "title": "player1 gets player2's full state",
       "expect": {
         "data": {
           "users": [
             {
-              "username": "${bob.name}"
+              "username": "${player2.name}"
             }
           ]
         }
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "user/unsubscribeUpdates",
-      "title": "alice unsubscribes",
+      "title": "player1 unsubscribes",
       "data": {
         "userIds": [
-          "${bob.id}"
+          "${player2.id}"
         ]
       },
       "expect": {

@@ -3,20 +3,20 @@
   "category": "Party",
   "description": "A player who leaves a party and then creates a new one must still receive party/updated. Known server bug: the player session keeps the old party's version and silently drops updates until the new party catches up. Found while running the other party scenarios.",
   "sessions": [
-    "alice",
-    "bob"
+    "player1",
+    "player2"
   ],
   "steps": [
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Reset: alice leaves any party",
+      "title": "Reset: player1 leaves any party",
       "optional": true
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/leave",
-      "title": "Reset: bob leaves any party",
+      "title": "Reset: player2 leaves any party",
       "optional": true
     },
     {
@@ -28,9 +28,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "Party 1: alice creates it",
+      "title": "Party 1: player1 creates it",
       "expect": {
         "status": "success"
       },
@@ -39,25 +39,25 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "Party 1: alice invites bob",
+      "title": "Party 1: player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "Party 1: bob receives the invite"
+      "title": "Party 1: player2 receives the invite"
     },
     {
-      "as": "bob",
+      "as": "player2",
       "command": "party/declineInvite",
-      "title": "Party 1: bob declines (raises the party version)",
+      "title": "Party 1: player2 declines (raises the party version)",
       "data": {
         "partyId": "${party.id}"
       },
@@ -66,14 +66,14 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "party/updated",
-      "title": "Party 1: alice is told (updates still work)"
+      "title": "Party 1: player1 is told (updates still work)"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "alice leaves party 1",
+      "title": "player1 leaves party 1",
       "expect": {
         "status": "success"
       }
@@ -87,9 +87,9 @@
       "title": "Forget events received so far"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/create",
-      "title": "Party 2: alice creates a fresh party",
+      "title": "Party 2: player1 creates a fresh party",
       "expect": {
         "status": "success"
       },
@@ -98,32 +98,32 @@
       }
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/invite",
-      "title": "Party 2: alice invites bob",
+      "title": "Party 2: player1 invites player2",
       "data": {
-        "userId": "${bob.id}"
+        "userId": "${player2.id}"
       },
       "expect": {
         "status": "success"
       }
     },
     {
-      "as": "bob",
+      "as": "player2",
       "waitFor": "party/invited",
-      "title": "Party 2: bob receives the invite"
+      "title": "Party 2: player2 receives the invite"
     },
     {
-      "as": "alice",
+      "as": "player1",
       "waitFor": "party/updated",
-      "title": "Party 2: alice must be told about the invite",
+      "title": "Party 2: player1 must be told about the invite",
       "timeout": 2000,
       "note": "Fails on servers where the player session keeps the previous party's version and drops lower-versioned updates."
     },
     {
-      "as": "alice",
+      "as": "player1",
       "command": "party/leave",
-      "title": "Cleanup: alice leaves",
+      "title": "Cleanup: player1 leaves",
       "optional": true
     }
   ]

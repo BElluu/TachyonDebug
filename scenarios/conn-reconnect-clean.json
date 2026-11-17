@@ -1,0 +1,31 @@
+{
+  "name": "Reconnect after a clean close",
+  "category": "Connection",
+  "description": "player1 closes the connection properly and connects again.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "as": "player1",
+      "disconnect": "close",
+      "title": "Close the connection cleanly"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "as": "player1",
+      "reconnect": true,
+      "title": "Reconnect"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "Requests work again",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}

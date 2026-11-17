@@ -1,0 +1,61 @@
+{
+  "name": "Server survives frames with missing fields",
+  "category": "Robustness",
+  "description": "Valid JSON that breaks the message contract: no commandId, no messageId, unknown type. The server must stay up and keep answering.",
+  "sessions": [
+    "player1"
+  ],
+  "steps": [
+    {
+      "drain": "all",
+      "title": "Forget events received so far"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "messageId": "raw-no-command"
+      },
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "Request without commandId"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "request",
+        "commandId": "system/serverStats"
+      },
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "Request without messageId"
+    },
+    {
+      "as": "player1",
+      "raw": {
+        "type": "banana",
+        "messageId": "raw-bad-type",
+        "commandId": "system/serverStats"
+      },
+      "waitReply": true,
+      "timeout": 1500,
+      "optional": true,
+      "title": "Unknown message type"
+    },
+    {
+      "as": "player1",
+      "reconnect": "ifClosed",
+      "title": "player1 reconnects if the server dropped the connection"
+    },
+    {
+      "as": "player1",
+      "command": "system/serverStats",
+      "title": "The server still answers normal requests",
+      "expect": {
+        "status": "success"
+      }
+    }
+  ]
+}
