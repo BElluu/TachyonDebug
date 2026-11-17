@@ -2,6 +2,8 @@
   "name": "tachyon-debug",
   "version": "0.1.0",
   "description": "Local web UI for poking a Teiserver Tachyon server with several clients at once",
+  "license": "MIT",
+  "author": "Bartłomiej Komendarczuk",
   "type": "module",
   "private": true,
   "scripts": {

@@ -507,7 +507,7 @@ input.num { width: 52px; padding: 2px 6px; }
 .ps-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ps-card.off { opacity: .6; }
 .ps-head { display: flex; align-items: center; gap: 8px; }
-.ps-row { display: grid; grid-template-columns: 92px 1fr; gap: 8px; font-size: 12.5px; }
+.ps-row { display: grid; grid-template-columns: 112px 1fr; gap: 8px; font-size: 12.5px; }
 .ps-k { color: var(--dim); font: 600 11px var(--font); text-transform: uppercase; letter-spacing: .05em; padding-top: 2px; }
 .ps-v { min-width: 0; overflow-wrap: anywhere; }
 .ps-list { display: inline-flex; flex-wrap: wrap; gap: 4px; }

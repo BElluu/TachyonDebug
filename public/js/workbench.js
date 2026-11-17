@@ -278,7 +278,7 @@ function renderResponse() {
       el('span', { class: 'spacer' }),
       el('span', { class: 'muted' }, `${ms} ms`),
       el('button', { onclick: () => navigator.clipboard?.writeText(prettyJson(msg)) }, 'Copy')),
-    schema?.ok === false ? issuesNode(schema.issues, 'The response does not match the protocol schema') : null,
+    ...(schema?.ok === false ? [issuesNode(schema.issues, 'The response does not match the protocol schema')] : []),
     el('pre', { class: 'json' }, highlightJson(prettyJson(msg))))
 }
 
